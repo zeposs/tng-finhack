@@ -560,7 +560,7 @@ export default function App() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-900 p-0 sm:bg-slate-200 sm:p-4">
+    <div className="flex h-[100dvh] w-full items-center justify-center bg-slate-900 overflow-hidden">
       {renderState()}
     </div>
   );

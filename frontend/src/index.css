@@ -5,16 +5,14 @@
 @layer base {
   html, body, #root {
     height: 100%;
-  }
-  html {
-    /* Respect iOS notch / home indicator in full-screen web apps. */
-    padding: env(safe-area-inset-top) env(safe-area-inset-right)
-             env(safe-area-inset-bottom) env(safe-area-inset-left);
+    margin: 0;
+    padding: 0;
+    overflow: hidden; /* Prevent body scroll */
   }
   body {
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
-    color: #0f172a;
+    background-color: #0f172a; /* Same as bg-slate-900 */
   }
 }
 
@@ -40,7 +38,7 @@
 
 /* App container: responsive width and height */
 .phone-frame {
-  width: 100vw;
+  width: 100%;
   height: 100dvh;
   max-width: 100%;
   max-height: 100%;
