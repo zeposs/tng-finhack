@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import logging
+import random
 import re
 from dataclasses import dataclass, field, asdict
 from typing import Any
@@ -179,6 +180,7 @@ def phrase_user_visible_reply(user_text: str, language: str, payload: dict[str, 
             model_name=settings.qwen_llm_model,
             dashscope_api_key=settings.dashscope_api_key,
             streaming=False,
+            model_kwargs={"temperature": 0.88, "top_p": 0.92},
         )
         system = (
             "You are Touch 'n Go eWallet Quick Mode. The listener is often a senior citizen.\n"
@@ -199,8 +201,11 @@ def phrase_user_visible_reply(user_text: str, language: str, payload: dict[str, 
             "- top_up_wallet ok false + reason invalid_amount: top-up amount not valid.\n"
             "- verify_identity: calmly ask for thumb on sensor to verify.\n"
             "- best_deal ok true: describe the strongest promotion in natural, varied wording using "
-            "only merchant, title, save_amount, promotions_count from the JSON. Do not follow a "
-            "rigid template or always open the same way; sound like a real assistant.\n"
+            "only merchant, title, save_amount, promotions_count from the JSON. Never open with a "
+            "stock line like 'The best deal is' every time; rotate how you start (savings first, or "
+            "shop first, or what the deal covers first). Do not mention in-store redemption phrases "
+            "unless the user asked how to redeem. Do not read promotions_count as a robotic tally "
+            "every time — sometimes weave it in casually, sometimes skip if the sentence already flows.\n"
             "- best_deal ok false + reason no_promotions: briefly explain there are no partner promos "
             "in the list yet; be helpful without stock filler.\n"
             "- unknown ok false + reason payment_amount_missing: user wants to pay but amount unclear; "
@@ -216,11 +221,20 @@ def phrase_user_visible_reply(user_text: str, language: str, payload: dict[str, 
             "\n"
             "Do not output JSON, bullet lists, or role labels — only words the user should hear."
         )
-        human = (
-            f"user_language={language}\n"
-            f"user_words={user_text!r}\n"
-            f"assistant_tool_json={json.dumps(safe_payload, ensure_ascii=False)}"
-        )
+        human_parts = [
+            f"user_language={language}",
+            f"user_words={user_text!r}",
+            f"assistant_tool_json={json.dumps(safe_payload, ensure_ascii=False)}",
+        ]
+        if safe_payload.get("tool") == "best_deal" and safe_payload.get("ok"):
+            _openings = (
+                "For this reply, lead with how much they save in RM.",
+                "For this reply, lead with the shop name.",
+                "For this reply, lead with what the offer applies to (from the title).",
+                "For this reply, open with a short friendly hook, then the facts.",
+            )
+            human_parts.append(random.choice(_openings))
+        human = "\n".join(human_parts)
         out = llm.invoke([SystemMessage(content=system), HumanMessage(content=human)])
         return _text_from_message_content(getattr(out, "content", None)) or None
     except Exception as exc:  # pragma: no cover
@@ -453,7 +467,7 @@ def _build_langchain_agent():
         "- Tool outputs are facts (numbers, names, flags). You turn them into a short, "
         "friendly explanation. For get_best_deal, the tool JSON has no canned speech — "
         "you explain the best offer yourself from the fields in natural, varied wording; "
-        "avoid sounding like a repeated script.\n"
+        "avoid sounding like a repeated script. Do not echo stock redemption lines; vary openings.\n"
     )
 
     try:
@@ -461,6 +475,7 @@ def _build_langchain_agent():
             model_name=settings.qwen_llm_model,
             dashscope_api_key=settings.dashscope_api_key,
             streaming=False,
+            model_kwargs={"temperature": 0.65, "top_p": 0.9},
         )
         return create_agent(model=llm, tools=tools, system_prompt=system_prompt)
     except Exception as exc:  # pragma: no cover

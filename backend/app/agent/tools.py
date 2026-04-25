@@ -112,6 +112,7 @@ def tool_best_deal() -> dict:
     save = round(_save(best), 2)
     merchant = str(best.get("merchant") or "Partner").strip() or "Partner"
     title = str(best.get("title") or "Special offer").strip() or "Special offer"
+    # Omit label/accent so the LLM is not anchored to fixed UI copy (e.g. "Show this at shop").
     return {
         "tool": "best_deal",
         "ok": True,
@@ -119,8 +120,6 @@ def tool_best_deal() -> dict:
             "merchant": merchant,
             "title": title,
             "save_amount": save,
-            "label": best.get("label"),
-            "accent": best.get("accent"),
         },
         "promotions_count": len(promos),
         "requires_verification": False,
