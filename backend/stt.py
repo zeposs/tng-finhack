@@ -100,6 +100,29 @@ def _transcribe_file_mode(audio_data: bytes, stt_lang: str, model_name: str) -> 
 
     callback = _SyncCallback()
 
+    def _extract_transcript_from_result(result_obj) -> str:
+        if result_obj and hasattr(result_obj, "get_sentence"):
+            sentence = result_obj.get_sentence()
+            if sentence and sentence.get("text"):
+                transcript_value = sentence["text"].strip()
+                if transcript_value:
+                    return transcript_value
+
+        if result_obj and hasattr(result_obj, "output") and result_obj.output:
+            if "sentence" in result_obj.output:
+                sentences = result_obj.output["sentence"]
+                transcript_value = " ".join(
+                    s.get("text", "") for s in sentences if s.get("text")
+                ).strip()
+                if transcript_value:
+                    return transcript_value
+            if "text" in result_obj.output:
+                transcript_value = result_obj.output["text"].strip()
+                if transcript_value:
+                    return transcript_value
+
+        return ""
+
     try:
         recognition = Recognition(
             model=model_name,
@@ -110,6 +133,11 @@ def _transcribe_file_mode(audio_data: bytes, stt_lang: str, model_name: str) -> 
         )
         _stt_debug(f"calling DashScope file STT model {model_name} (format={STT_AUDIO_FORMAT}, rate={STT_SAMPLE_RATE})")
         result = recognition.call(tmp_path)
+
+        transcript_from_result = _extract_transcript_from_result(result)
+        if transcript_from_result:
+            _stt_debug(f"final transcript (sync result): {transcript_from_result}")
+            return transcript_from_result
 
         finished = callback.done.wait(timeout=STT_CALLBACK_TIMEOUT_SECONDS)
         if not finished:
@@ -124,23 +152,10 @@ def _transcribe_file_mode(audio_data: bytes, stt_lang: str, model_name: str) -> 
             _stt_debug(f"final transcript (callback): {transcript}")
             return transcript
 
-        if result and hasattr(result, "get_sentence"):
-            sentence = result.get_sentence()
-            if sentence and sentence.get("text"):
-                transcript = sentence["text"].strip()
-                _stt_debug(f"final transcript (result.get_sentence): {transcript}")
-                return transcript
-
-        if result and hasattr(result, "output") and result.output:
-            if "sentence" in result.output:
-                sentences = result.output["sentence"]
-                transcript = " ".join(s.get("text", "") for s in sentences if s.get("text")).strip()
-                _stt_debug(f"final transcript (result.output.sentence): {transcript}")
-                return transcript
-            if "text" in result.output:
-                transcript = result.output["text"].strip()
-                _stt_debug(f"final transcript (result.output.text): {transcript}")
-                return transcript
+        transcript_from_result = _extract_transcript_from_result(result)
+        if transcript_from_result:
+            _stt_debug(f"final transcript (result after callback): {transcript_from_result}")
+            return transcript_from_result
 
         _stt_debug("no transcript extracted")
         return ""
@@ -193,6 +208,10 @@ def _convert_audio_to_pcm16le(audio_data: bytes) -> bytes:
             os.unlink(in_path)
         if os.path.exists(out_path):
             os.unlink(out_path)
+
+
+def _is_ffmpeg_available() -> bool:
+    return shutil.which("ffmpeg") is not None
 
 
 def _transcribe_websocket_mode(audio_data: bytes, stt_lang: str) -> str:
@@ -391,6 +410,10 @@ def transcribe_audio(audio_data: bytes, language: str = "en") -> str:
         STT_MODE == "websocket"
         or (STT_MODE == "auto" and "qwen3-asr-flash-realtime" in STT_MODEL)
     )
+
+    if use_websocket and STT_MODE == "auto" and not _is_ffmpeg_available():
+        _stt_debug("ffmpeg not found; skipping websocket mode in auto and continuing fallback chain")
+        use_websocket = False
 
     use_http_qwen = STT_MODE == "http" or (
         STT_MODE == "auto" and STT_HTTP_ENABLE and "qwen3-asr-flash" in STT_MODEL
