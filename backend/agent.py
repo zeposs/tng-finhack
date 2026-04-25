@@ -1,4 +1,5 @@
 import os
+import dashscope
 from langchain_classic.agents import AgentExecutor, create_tool_calling_agent
 from langchain_classic.memory import ConversationBufferMemory
 from langchain_core.tools import tool
@@ -8,6 +9,14 @@ from dotenv import load_dotenv
 from database import get_balance, make_payment, top_up
 
 load_dotenv()
+
+dashscope.api_key = os.getenv("DASHSCOPE_API_KEY")
+dashscope.base_http_api_url = os.getenv(
+    "DASHSCOPE_BASE_HTTP_API_URL",
+    "https://dashscope-intl.aliyuncs.com/api/v1",
+)
+
+AGENT_API_KEY = os.getenv("DASHSCOPE_API_KEY_AGENT") or os.getenv("DASHSCOPE_API_KEY")
 
 USER_ID = "user_001"
 AGENT_MODEL = os.getenv("AGENT_MODEL", "qwen-turbo")
@@ -75,7 +84,7 @@ def get_agent():
     """Create and return the LangChain agent."""
     llm = ChatTongyi(
         model=AGENT_MODEL,
-        dashscope_api_key=os.getenv("DASHSCOPE_API_KEY"),
+        dashscope_api_key=AGENT_API_KEY,
         temperature=0.3,
         max_tokens=150,
     )

@@ -15,6 +15,14 @@ from dotenv import load_dotenv
 load_dotenv()
 
 dashscope.api_key = os.getenv("DASHSCOPE_API_KEY")
+dashscope.base_http_api_url = os.getenv(
+    "DASHSCOPE_BASE_HTTP_API_URL",
+    "https://dashscope-intl.aliyuncs.com/api/v1",
+)
+dashscope.base_websocket_api_url = os.getenv(
+    "DASHSCOPE_BASE_WEBSOCKET_API_URL",
+    "wss://dashscope-intl.aliyuncs.com/api-ws/v1/inference",
+)
 STT_CALLBACK_TIMEOUT_SECONDS = int(os.getenv("STT_CALLBACK_TIMEOUT_SECONDS", "18"))
 STT_DEBUG_LOG = os.getenv("STT_DEBUG_LOG", "1").lower() in ("1", "true", "yes", "on")
 STT_MODEL = os.getenv("STT_MODEL", "paraformer-realtime-v2")

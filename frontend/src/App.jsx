@@ -21,6 +21,7 @@ import { sendVoice, getTTS } from './api';
 */
 
 export default function App() {
+  const BROWSER_TTS_PREF_KEY = 'preferBrowserTTS';
   const [appState, setAppState] = useState('HOME');
   const [language, setLanguage] = useState('en');
   const [agentResult, setAgentResult] = useState(null);
@@ -29,6 +30,44 @@ export default function App() {
   const [pipelineStatus, setPipelineStatus] = useState('');
   const [debugLog, setDebugLog] = useState([]);
   const [showDebug, setShowDebug] = useState(true);
+  const [preferBrowserTTS, setPreferBrowserTTS] = useState(() => {
+    try {
+      return window.localStorage.getItem(BROWSER_TTS_PREF_KEY) === '1';
+    } catch {
+      return false;
+    }
+  });
+
+  const enableBrowserTTSMode = () => {
+    setPreferBrowserTTS(true);
+    try {
+      window.localStorage.setItem(BROWSER_TTS_PREF_KEY, '1');
+    } catch {
+      // ignore storage errors
+    }
+  };
+
+  const speakWithBrowser = (text, langCode) => {
+    if (!('speechSynthesis' in window)) return false;
+
+    const speechLang = {
+      en: 'en-US',
+      bm: 'ms-MY',
+      zh: 'zh-CN',
+    }[langCode] || 'en-US';
+
+    try {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = speechLang;
+      utterance.rate = 1.0;
+      utterance.pitch = 1.0;
+      window.speechSynthesis.speak(utterance);
+      return true;
+    } catch {
+      return false;
+    }
+  };
 
   const addDebug = (label, data) => {
     const ts = new Date().toLocaleTimeString('en-MY', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -76,6 +115,13 @@ export default function App() {
 
       // Play TTS response
       if (result.text) {
+        if (preferBrowserTTS) {
+          addDebug('TTS', 'Using browser speech synthesis (cloud TTS disabled)');
+          const fallbackOk = speakWithBrowser(result.text, language);
+          addDebug('TTS Fallback', fallbackOk ? 'Browser speech synthesis used' : 'Unavailable');
+          return;
+        }
+
         try {
           addDebug('TTS', `Requesting speech for: "${result.text.substring(0, 50)}..."`);
           setPipelineStatus('Generating voice reply...');
@@ -86,6 +132,17 @@ export default function App() {
           audio.play().catch(() => {});
         } catch (ttsErr) {
           addDebug('TTS Error', ttsErr.message || 'Failed');
+          const errorText = String(ttsErr?.response?.data || ttsErr?.message || '');
+          if (
+            ttsErr?.response?.status === 500 ||
+            errorText.includes('Model not found') ||
+            errorText.includes('ModelNotFound')
+          ) {
+            enableBrowserTTSMode();
+            addDebug('TTS Mode', 'Cloud TTS unavailable, switching to browser TTS');
+          }
+          const fallbackOk = speakWithBrowser(result.text, language);
+          addDebug('TTS Fallback', fallbackOk ? 'Browser speech synthesis used' : 'Unavailable');
         }
       }
     } catch (err) {
