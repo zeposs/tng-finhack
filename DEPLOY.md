@@ -3,8 +3,8 @@
 ## Quick Restart All
 
 ```bash
-# Pull latest code
-cd /var/www/html/tng-finhack && git pull origin dev-charlie
+# Pull latest code (change branch as needed)
+cd /var/www/html/tng-finhack && git pull origin main
 
 # Restart backend
 pkill -f "python app.py"
@@ -12,6 +12,28 @@ eval "$(/usr/bin/conda shell.bash hook)" && conda activate tng-finhack
 cd /var/www/html/tng-finhack/backend && ./start.sh
 
 # Reload nginx
+sudo systemctl reload nginx
+```
+
+---
+
+## Switch Branch
+
+```bash
+cd /var/www/html/tng-finhack
+
+# Switch to main
+git checkout main
+git pull origin main
+
+# Or switch to dev-charlie
+git checkout dev-charlie
+git pull origin dev-charlie
+
+# After switching, rebuild frontend and restart backend
+export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" && nvm use 20
+cd frontend && npm install && npm run build
+cd ../backend && pkill -f "python app.py" && ./start.sh
 sudo systemctl reload nginx
 ```
 
@@ -65,6 +87,11 @@ sudo systemctl reload nginx
 
 ```bash
 cd /var/www/html/tng-finhack
+
+# For main branch
+git pull origin main
+
+# For dev branch
 git pull origin dev-charlie
 ```
 
@@ -96,3 +123,4 @@ sudo tail -f /var/log/nginx/access.log
 | Check site | `curl -I http://syok.ai` |
 | Activate conda env | `eval "$(/usr/bin/conda shell.bash hook)" && conda activate tng-finhack` |
 | Activate nvm | `export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" && nvm use 20` |
+| Current branch | `git branch --show-current` |
