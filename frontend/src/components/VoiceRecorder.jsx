@@ -84,7 +84,10 @@ export default function VoiceRecorder({ lang, onAudioCaptured, onTextSubmit, onC
 
   return (
     <div className="phone-frame flex flex-col bg-white">
-      <div className="bg-tng-blue rounded-b-[28px] px-4 pt-5 pb-6 text-white sm:rounded-b-[36px] sm:px-5 sm:pt-6 sm:pb-8">
+      <div
+        className="bg-tng-blue rounded-b-[28px] px-4 pt-5 pb-6 text-white sm:rounded-b-[36px] sm:px-5 sm:pt-6 sm:pb-8"
+        style={{ paddingTop: 'env(safe-area-inset-top)' }}
+      >
         <button onClick={onCancel} className="text-sm font-semibold opacity-80 active:opacity-50">
           ← {t(lang, 'back')}
         </button>
@@ -138,7 +141,10 @@ export default function VoiceRecorder({ lang, onAudioCaptured, onTextSubmit, onC
         )}
       </div>
 
-      <div className="border-t border-slate-100 bg-white px-4 pb-5 pt-4 sm:px-6 sm:pb-7 sm:pt-5">
+      <div
+        className="border-t border-slate-100 bg-white px-4 pb-5 pt-4 sm:px-6 sm:pb-7 sm:pt-5"
+        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 8px)' }}
+      >
         <div className="mb-3 text-center">
           <div className="text-lg font-extrabold text-slate-800 sm:text-xl">{statusLine}</div>
           {recording && (

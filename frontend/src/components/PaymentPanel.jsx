@@ -16,7 +16,10 @@ export default function PaymentPanel({ lang, onBack, onProceed }) {
 
   return (
     <div className="phone-frame flex flex-col bg-white">
-      <div className="bg-tng-blue rounded-b-[28px] px-4 pt-5 pb-6 text-white sm:rounded-b-[36px] sm:px-5 sm:pt-6 sm:pb-8">
+      <div
+        className="bg-tng-blue rounded-b-[28px] px-4 pt-5 pb-6 text-white sm:rounded-b-[36px] sm:px-5 sm:pt-6 sm:pb-8"
+        style={{ paddingTop: 'env(safe-area-inset-top)' }}
+      >
         <button onClick={onBack} className="text-sm font-semibold opacity-80 active:opacity-50">
           ← {t(lang, 'back')}
         </button>
@@ -74,7 +77,10 @@ export default function PaymentPanel({ lang, onBack, onProceed }) {
         </div>
       </div>
 
-      <div className="px-4 pb-4 sm:px-5 sm:pb-6">
+      <div
+        className="px-4 pb-4 sm:px-5 sm:pb-6"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      >
         <button
           disabled={!canProceed}
           onClick={() => void onProceed({ merchant: merchant.trim(), amount })}

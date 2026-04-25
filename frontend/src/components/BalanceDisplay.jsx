@@ -4,7 +4,10 @@ import { t } from '../state/strings.js';
 export default function BalanceDisplay({ lang, balance, onBack }) {
   return (
     <div className="phone-frame flex flex-col bg-white">
-      <div className="bg-tng-blue rounded-b-[28px] px-4 pt-5 pb-7 text-white sm:rounded-b-[36px] sm:px-5 sm:pt-6 sm:pb-10">
+      <div
+        className="bg-tng-blue rounded-b-[28px] px-4 pt-5 pb-7 text-white sm:rounded-b-[36px] sm:px-5 sm:pt-6 sm:pb-10"
+        style={{ paddingTop: 'env(safe-area-inset-top)' }}
+      >
         <button onClick={onBack} className="text-sm font-semibold opacity-80 active:opacity-50">
           ← {t(lang, 'back')}
         </button>
@@ -23,7 +26,10 @@ export default function BalanceDisplay({ lang, balance, onBack }) {
         </div>
       </div>
 
-      <div className="px-4 pb-4 sm:px-5 sm:pb-6">
+      <div
+        className="px-4 pb-4 sm:px-5 sm:pb-6"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      >
         <button
           onClick={onBack}
           className="w-full rounded-2xl bg-tng-blue py-3.5 text-lg font-extrabold text-white active:scale-95 sm:py-4 sm:text-xl"

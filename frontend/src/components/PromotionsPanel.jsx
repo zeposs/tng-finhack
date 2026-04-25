@@ -297,7 +297,10 @@ export default function PromotionsPanel({ lang, onBack }) {
 
   return (
     <div className="phone-frame flex flex-col bg-white">
-      <div className="bg-tng-blue px-4 pt-5 pb-5 text-white">
+      <div
+        className="bg-tng-blue px-4 pt-5 pb-5 text-white"
+        style={{ paddingTop: 'env(safe-area-inset-top)' }}
+      >
         <button onClick={onBack} className="text-sm font-semibold opacity-80 active:opacity-50">
           ← {t(lang, 'back')}
         </button>
@@ -397,7 +400,10 @@ export default function PromotionsPanel({ lang, onBack }) {
         </div>
       </div>
 
-      <div className="px-4 pb-4">
+      <div
+        className="px-4 pb-4"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      >
         <button
           onClick={onBack}
           className="w-full rounded-2xl bg-tng-blue py-3 text-lg font-extrabold text-white active:scale-95"

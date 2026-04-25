@@ -12,7 +12,10 @@ export default function SuccessScreen({ lang, kind, amount, merchant, balance, o
 
   return (
     <div className="phone-frame flex flex-col bg-white">
-      <div className="bg-emerald-500 rounded-b-[28px] px-4 pt-6 pb-7 text-center text-white sm:rounded-b-[36px] sm:px-5 sm:pt-8 sm:pb-10">
+      <div
+        className="bg-emerald-500 rounded-b-[28px] px-4 pt-6 pb-7 text-center text-white sm:rounded-b-[36px] sm:px-5 sm:pt-8 sm:pb-10"
+        style={{ paddingTop: 'env(safe-area-inset-top)' }}
+      >
         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-white text-4xl text-emerald-500 shadow-soft sm:h-20 sm:w-20 sm:text-5xl">
           ✓
         </div>
@@ -76,7 +79,10 @@ export default function SuccessScreen({ lang, kind, amount, merchant, balance, o
         )}
       </div>
 
-      <div className="px-4 pb-4 sm:px-5 sm:pb-6">
+      <div
+        className="px-4 pb-4 sm:px-5 sm:pb-6"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      >
         <button
           onClick={onDone}
           className="w-full rounded-2xl bg-tng-blue py-3.5 text-lg font-extrabold text-white active:scale-95 sm:py-4 sm:text-xl"

@@ -24,7 +24,10 @@ export default function AgentResult({ lang, result, onApprove, onCancel }) {
 
   return (
     <div className="phone-frame flex flex-col bg-white">
-      <div className="bg-tng-blue rounded-b-[28px] px-4 pt-5 pb-6 text-white sm:rounded-b-[36px] sm:px-5 sm:pt-6 sm:pb-8">
+      <div
+        className="bg-tng-blue rounded-b-[28px] px-4 pt-5 pb-6 text-white sm:rounded-b-[36px] sm:px-5 sm:pt-6 sm:pb-8"
+        style={{ paddingTop: 'env(safe-area-inset-top)' }}
+      >
         <button onClick={onCancel} className="text-sm font-semibold opacity-80 active:opacity-50">
           ← {t(lang, 'back')}
         </button>
@@ -92,7 +95,10 @@ export default function AgentResult({ lang, result, onApprove, onCancel }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2.5 px-4 pb-4 sm:gap-3 sm:px-5 sm:pb-6">
+      <div
+        className="grid grid-cols-2 gap-2.5 px-4 pb-4 sm:gap-3 sm:px-5 sm:pb-6"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      >
         <button
           onClick={onCancel}
           className="rounded-2xl border-2 border-slate-200 bg-white py-3.5 text-base font-bold text-slate-600 active:scale-95 sm:py-4 sm:text-lg"

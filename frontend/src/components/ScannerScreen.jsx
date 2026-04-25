@@ -170,7 +170,10 @@ export default function ScannerScreen({ lang, onBack, onScanned, prefill }) {
 
   return (
     <div className="phone-frame relative flex flex-col bg-slate-100 text-slate-900">
-      <div className="bg-tng-blue px-4 pt-5 pb-3 text-white sm:px-5 sm:pt-6 sm:pb-4">
+      <div
+        className="bg-tng-blue px-4 pt-5 pb-3 text-white sm:px-5 sm:pt-6 sm:pb-4"
+        style={{ paddingTop: 'env(safe-area-inset-top)' }}
+      >
         <button
           onClick={() => {
             stopCamera();
