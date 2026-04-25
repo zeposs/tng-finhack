@@ -1,0 +1,87 @@
+@import "tailwindcss";
+
+@theme {
+  --color-tng-blue: #003087;
+  --color-tng-blue-light: #0052CC;
+  --color-tng-yellow: #FFD700;
+  --color-tng-gold: #E6B800;
+  --color-tng-bg: #E8ECF4;
+  --color-tng-header: #003087;
+  --color-card-green: #4CAF50;
+  --color-card-yellow: #FF9800;
+  --color-card-purple: #7C4DFF;
+  --color-card-red: #F44336;
+  --color-card-teal: #00BCD4;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: var(--color-tng-bg);
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
+
+#root {
+  max-width: 1200px;
+  margin: 0 auto;
+  min-height: 100dvh;
+  background: var(--color-tng-bg);
+  position: relative;
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(1); opacity: 0.6; }
+  100% { transform: scale(1.4); opacity: 0; }
+}
+
+@keyframes float-up {
+  0% { transform: translateY(20px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes checkmark-pop {
+  0% { transform: scale(0); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+@keyframes fingerprint-scan {
+  0% { background-position: 0% 0%; }
+  100% { background-position: 0% 100%; }
+}
+
+@keyframes node-glow {
+  0%, 100% { box-shadow: 0 0 5px rgba(0, 48, 135, 0.3); }
+  50% { box-shadow: 0 0 20px rgba(0, 48, 135, 0.8); }
+}
+
+@keyframes slide-in {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+.animate-pulse-ring {
+  animation: pulse-ring 1.2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+}
+
+.animate-float-up {
+  animation: float-up 0.5s ease-out forwards;
+}
+
+.animate-checkmark-pop {
+  animation: checkmark-pop 0.5s ease-out forwards;
+}
+
+.animate-node-glow {
+  animation: node-glow 1.5s ease-in-out infinite;
+}
+
+.animate-slide-in {
+  animation: slide-in 0.3s ease-out;
+}
