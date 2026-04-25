@@ -191,9 +191,9 @@ export default function ScannerScreen({ lang, onBack, onScanned, prefill }) {
         </div>
 
         <div className="relative overflow-hidden rounded-3xl border-2 border-slate-200 bg-slate-900">
-          <video ref={videoRef} className="h-[345px] w-full object-cover sm:h-[480px]" muted playsInline />
-          <div className="pointer-events-none absolute inset-0 flex items-end justify-center pb-8 sm:pb-10">
-            <div className="h-56 w-56 rounded-3xl border-4 border-emerald-300/90 shadow-[0_0_0_9999px_rgba(0,0,0,0.35)] sm:h-64 sm:w-64" />
+          <video ref={videoRef} className="h-[345px] w-full object-cover sm:h-[480px] md:h-[560px]" muted playsInline />
+          <div className="pointer-events-none absolute inset-0 flex items-end justify-center pb-8 sm:pb-10 md:pb-12">
+            <div className="h-56 w-56 rounded-3xl border-4 border-emerald-300/90 shadow-[0_0_0_9999px_rgba(0,0,0,0.35)] sm:h-64 sm:w-64 md:h-80 md:w-80" />
           </div>
           {!detectorReady && !detectedLabel && (
             <div className="absolute inset-x-0 bottom-0 bg-black/70 px-3 py-2 text-xs font-semibold">

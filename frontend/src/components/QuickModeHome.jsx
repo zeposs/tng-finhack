@@ -153,7 +153,7 @@ function ChatBox({ lang, messages }) {
           </div>
         )}
       </div>
-      <div ref={listRef} className="no-scrollbar h-[146px] space-y-1.5 overflow-y-auto rounded-2xl bg-transparent p-0 sm:h-[176px]">
+      <div ref={listRef} className="no-scrollbar flex-1 space-y-1.5 overflow-y-auto rounded-2xl bg-transparent p-0">
         {messages?.length ? messages.map((m, i) => (
           <div
             key={`${m.role}-${i}`}
