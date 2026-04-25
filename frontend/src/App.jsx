@@ -1,121 +1,198 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
+import { useState, useRef, useCallback } from 'react'
+import axios from 'axios'
+import QuickModeHome from './components/QuickModeHome'
+import VoiceRecorder from './components/VoiceRecorder'
+import PipelineAnimation from './components/PipelineAnimation'
+import AgentResult from './components/AgentResult'
+import ThumbprintOverlay from './components/ThumbprintOverlay'
+import SuccessScreen from './components/SuccessScreen'
+import PromotionsPanel from './components/PromotionsPanel'
+import BalanceDisplay from './components/BalanceDisplay'
+import CallHelper from './components/CallHelper'
 import './App.css'
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [appState, setAppState] = useState('HOME')
+  const [agentResult, setAgentResult] = useState(null)
+  const [language, setLanguage] = useState('en')
+  const [transcription, setTranscription] = useState('')
+  const [error, setError] = useState(null)
+  const [balance, setBalance] = useState(250.00)
+  const mediaRecorderRef = useRef(null)
+  const audioChunksRef = useRef([])
+
+  const fetchBalance = useCallback(async () => {
+    try {
+      const res = await axios.get('/api/balance')
+      setBalance(res.data.balance)
+    } catch {
+      // keep default
+    }
+  }, [])
+
+  const handleVoiceStart = async () => {
+    setAppState('LISTENING')
+    setError(null)
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      mediaRecorderRef.current = new MediaRecorder(stream)
+      audioChunksRef.current = []
+
+      mediaRecorderRef.current.ondataavailable = (e) => {
+        audioChunksRef.current.push(e.data)
+      }
+
+      mediaRecorderRef.current.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' })
+        const reader = new FileReader()
+        reader.onloadend = async () => {
+          const audioBase64 = reader.result.split(',')[1]
+          try {
+            setAppState('THINKING')
+            const voiceRes = await axios.post('/api/voice', {
+              audio: audioBase64,
+              language
+            })
+            const { intent, transcription: trans } = voiceRes.data
+            setTranscription(trans)
+
+            const agentRes = await axios.post('/api/agent', { intent })
+            setAgentResult(agentRes.data)
+            setAppState('RESULT')
+
+            if (agentRes.data.requires_verify) {
+              setTimeout(() => setAppState('VERIFYING'), 2000)
+            }
+          } catch (err) {
+            setError("I didn't catch that. Please try again.")
+            setAppState('HOME')
+          }
+        }
+        reader.readAsDataURL(audioBlob)
+        stream.getTracks().forEach(t => t.stop())
+      }
+
+      mediaRecorderRef.current.start()
+      setTimeout(() => {
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+          mediaRecorderRef.current.stop()
+        }
+      }, 5000)
+    } catch {
+      setError('Microphone access denied. Please allow microphone access.')
+      setAppState('HOME')
+    }
+  }
+
+  const handleThumbprintVerify = async () => {
+    try {
+      const verifyAction = agentResult?.verify_action
+      if (verifyAction === 'confirm_payment') {
+        await axios.post('/api/payment', {
+          amount: agentResult.amount,
+          merchant: agentResult.merchant
+        })
+      } else if (verifyAction === 'confirm_topup') {
+        await axios.post('/api/topup', {
+          amount: agentResult.amount
+        })
+      }
+      await fetchBalance()
+      setAppState('SUCCESS')
+    } catch {
+      setError('Verification failed. Please try again.')
+      setAppState('HOME')
+    }
+  }
+
+  const handleDone = () => {
+    setAppState('HOME')
+    setAgentResult(null)
+    setTranscription('')
+    setError(null)
+    fetchBalance()
+  }
+
+  const handleViewPromotions = async () => {
+    setAppState('PROMOTIONS')
+  }
+
+  const handleViewBalance = async () => {
+    await fetchBalance()
+    setAppState('BALANCE')
+  }
+
+  const handleCallHelper = () => {
+    setAppState('HELPER')
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+      <div className="max-w-md mx-auto px-4 py-6">
+        {error && (
+          <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-center text-lg">
+            {error}
+          </div>
+        )}
 
-      <div className="ticks"></div>
+        {appState === 'HOME' && (
+          <QuickModeHome
+            balance={balance}
+            onVoice={handleVoiceStart}
+            onPromotions={handleViewPromotions}
+            onBalance={handleViewBalance}
+            onCallHelper={handleCallHelper}
+          />
+        )}
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+        {appState === 'LISTENING' && (
+          <VoiceRecorder />
+        )}
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+        {appState === 'THINKING' && (
+          <PipelineAnimation />
+        )}
+
+        {appState === 'RESULT' && (
+          <AgentResult
+            data={agentResult}
+            transcription={transcription}
+          />
+        )}
+
+        {appState === 'VERIFYING' && (
+          <ThumbprintOverlay
+            onVerify={handleThumbprintVerify}
+          />
+        )}
+
+        {appState === 'SUCCESS' && (
+          <SuccessScreen
+            data={agentResult}
+            onDone={handleDone}
+          />
+        )}
+
+        {appState === 'PROMOTIONS' && (
+          <PromotionsPanel
+            onBack={handleDone}
+          />
+        )}
+
+        {appState === 'BALANCE' && (
+          <BalanceDisplay
+            balance={balance}
+            onBack={handleDone}
+          />
+        )}
+
+        {appState === 'HELPER' && (
+          <CallHelper
+            onBack={handleDone}
+          />
+        )}
+      </div>
+    </div>
   )
 }
 
