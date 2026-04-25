@@ -1,0 +1,83 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body, #root {
+    height: 100%;
+  }
+  html {
+    /* Respect iOS notch / home indicator in full-screen web apps. */
+    padding: env(safe-area-inset-top) env(safe-area-inset-right)
+             env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  body {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    color: #0f172a;
+  }
+}
+
+@layer components {
+  /* Large elder-friendly action button */
+  .qm-btn {
+    @apply flex flex-col items-center justify-center gap-2 rounded-3xl
+           p-5 text-center font-semibold shadow-soft transition
+           active:scale-[0.97] focus:outline-none focus-visible:ring-4
+           focus-visible:ring-tng-blue/30;
+    min-height: 122px;
+  }
+  .qm-btn-icon {
+    @apply flex h-16 w-16 items-center justify-center rounded-full text-3xl;
+  }
+  .qm-card {
+    @apply rounded-3xl bg-white p-6 shadow-soft;
+  }
+  .qm-pill {
+    @apply rounded-full px-4 py-2 text-base font-semibold;
+  }
+}
+
+/* Phone-frame look on desktop */
+.phone-frame {
+  width: 100%;
+  max-width: 420px;
+  min-height: 100vh;
+  min-height: 100dvh; /* dynamic viewport for iOS browser chrome */
+  background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%);
+  box-shadow: 0 30px 60px -20px rgba(15, 23, 42, 0.25);
+  border-radius: 0;
+}
+
+/* iPhone-class narrow screens: slightly tighter spacing and controls. */
+@media (max-width: 430px) {
+  .qm-btn {
+    min-height: 112px;
+    padding: 1rem;
+  }
+  .qm-btn-icon {
+    height: 3.25rem;
+    width: 3.25rem;
+    font-size: 1.5rem;
+  }
+}
+
+@media (min-width: 480px) {
+  .phone-frame {
+    border-radius: 36px;
+    margin: 24px auto;
+    min-height: calc(100vh - 48px);
+    overflow: hidden;
+  }
+}
+
+/* SVG node connector flow line */
+.flow-line {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(22, 82, 161, 0.0) 0%,
+    rgba(22, 82, 161, 0.6) 50%,
+    rgba(22, 82, 161, 0.0) 100%
+  );
+}
