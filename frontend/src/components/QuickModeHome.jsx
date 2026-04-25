@@ -135,56 +135,42 @@ function WeChatHoldVoiceButton({ lang, onCaptured, disabled }) {
   );
 }
 
-function ChatBox({ lang, messages, onSubmit, busy }) {
-  const [text, setText] = React.useState('');
+function ChatBox({ lang, messages }) {
+  const listRef = React.useRef(null);
+  const endRef = React.useRef(null);
+
+  React.useEffect(() => {
+    if (!endRef.current || !listRef.current) return;
+    endRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }, [messages]);
 
   return (
     <div className="rounded-3xl border border-slate-200 bg-white p-3 shadow-sm">
       <div className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-500">
         {t(lang, 'chatboxTitle')}
       </div>
-      <div className="max-h-36 space-y-2 overflow-y-auto rounded-2xl bg-slate-50 p-2">
+      <div ref={listRef} className="chat-scroll-thin max-h-36 space-y-2 overflow-y-auto rounded-2xl bg-slate-50 p-2">
         {messages?.length ? messages.map((m, i) => (
           <div
             key={`${m.role}-${i}`}
-            className={`max-w-[92%] rounded-2xl px-3 py-2 text-sm leading-snug ${
+            className={`rounded-2xl px-3 py-2 leading-snug ${
               m.role === 'user'
-                ? 'ml-auto bg-tng-blue text-white'
-                : 'mr-auto bg-white text-slate-700 border border-slate-200'
+                ? 'ml-auto max-w-[92%] bg-tng-blue text-sm text-white'
+                : 'mr-auto w-full rounded-3xl border-2 border-tng-blue/25 bg-white px-4 py-4 text-xl font-extrabold leading-tight text-slate-800 shadow-sm'
             }`}
           >
+            {m.role === 'assistant' && (
+              <div className="mb-2 text-xs font-bold uppercase tracking-wider text-tng-blue/70">
+                Assistant reply
+              </div>
+            )}
             {m.text}
           </div>
         )) : (
           <div className="text-sm text-slate-500">{t(lang, 'chatboxPlaceholder')}</div>
         )}
+        <div ref={endRef} />
       </div>
-      <form
-        className="mt-2 flex gap-2"
-        onSubmit={(e) => {
-          e.preventDefault();
-          const msg = text.trim();
-          if (!msg) return;
-          onSubmit(msg);
-          setText('');
-        }}
-      >
-        <input
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder={t(lang, 'typeMessage')}
-          className="min-w-0 flex-1 rounded-xl border-2 border-slate-200 px-3 py-2 text-sm focus:border-tng-blue focus:outline-none"
-        />
-        <button
-          disabled={busy}
-          className={`rounded-xl px-3 py-2 text-sm font-bold text-white ${
-            busy ? 'bg-slate-400' : 'bg-tng-blue active:scale-95'
-          }`}
-          type="submit"
-        >
-          {busy ? t(lang, 'thinking') : t(lang, 'send')}
-        </button>
-      </form>
     </div>
   );
 }
@@ -197,14 +183,12 @@ export default function QuickModeHome({
   onPay,
   onDeals,
   onVoice,
-  onHelper,
   onFamily,
   onVoiceMode,
   onHelp,
   chatMessages,
   voiceBusy,
   onVoiceCaptured,
-  onChatSubmit,
 }) {
   return (
     <div className="phone-frame flex flex-col">
@@ -224,8 +208,6 @@ export default function QuickModeHome({
         <ChatBox
           lang={lang}
           messages={chatMessages}
-          onSubmit={onChatSubmit}
-          busy={voiceBusy}
         />
 
         <div className="h-4" />
@@ -241,34 +223,14 @@ export default function QuickModeHome({
             hint={t(lang, 'dealsHint')}
           />
           <ActionTile
-            onClick={onHelper}
-            icon="📞"
-            iconBg="#dbeafe"
-            color="#1652A1"
-            accent="#1652A1"
-            label={t(lang, 'helper')}
-            hint={t(lang, 'helperHint')}
-          />
-        </div>
-
-        <div className="pt-4">
-          <button
             onClick={onFamily}
-            className="qm-btn w-full flex-row gap-4 bg-white"
-            style={{ minHeight: 104, border: '2px solid #fbcfe822' }}
-          >
-            <div className="qm-btn-icon" style={{ background: '#fce7f3', color: '#db2777' }}>
-              👨‍👩‍👧
-            </div>
-            <div className="flex flex-col items-start">
-              <div className="text-2xl font-extrabold text-pink-600">
-                {t(lang, 'family')}
-              </div>
-              <div className="text-[13px] font-medium text-slate-500">
-                {t(lang, 'familyHint')}
-              </div>
-            </div>
-          </button>
+            icon="👨‍👩‍👧"
+            iconBg="#fce7f3"
+            color="#db2777"
+            accent="#db2777"
+            label={t(lang, 'family')}
+            hint={t(lang, 'familyHint')}
+          />
         </div>
 
         <div className="mb-4" />

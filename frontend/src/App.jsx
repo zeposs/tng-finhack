@@ -33,7 +33,6 @@ const STATE = Object.freeze({
   SUCCESS:     'SUCCESS',
   PROMOTIONS:  'PROMOTIONS',
   BALANCE:     'BALANCE',
-  HELPER:      'HELPER',
   FAMILY:      'FAMILY',
 });
 
@@ -101,7 +100,10 @@ export default function App() {
     const userText = result?.text?.trim();
     const speech = result?.payload?.speech?.trim();
     if (userText) appendHomeChat('user', userText);
-    if (speech) appendHomeChat('assistant', speech);
+    if (speech) {
+      appendHomeChat('assistant', speech);
+      speakResponse(speech);
+    }
 
     if (result?.tool === 'check_balance' && typeof result?.payload?.balance === 'number') {
       setBalance(result.payload.balance);
@@ -116,7 +118,7 @@ export default function App() {
       });
       setAppState(STATE.SCANNER);
     }
-  }, [appendHomeChat]);
+  }, [appendHomeChat, speakResponse]);
 
   const proceedManualPayment = useCallback(
     ({ amount, merchant }) => {
@@ -215,25 +217,6 @@ export default function App() {
       } catch (err) {
         console.warn('Home voice request failed:', err);
         appendHomeChat('assistant', 'Sorry, I could not hear that. Please try again.');
-      } finally {
-        setHomeVoiceBusy(false);
-      }
-    },
-    [appendHomeChat, lang, processHomeResult],
-  );
-
-  const handleHomeTextSubmit = useCallback(
-    async (text) => {
-      const msg = text?.trim();
-      if (!msg) return;
-      appendHomeChat('user', msg);
-      setHomeVoiceBusy(true);
-      try {
-        const result = await sendText(msg, lang);
-        processHomeResult(result);
-      } catch (err) {
-        console.warn('Home text request failed:', err);
-        appendHomeChat('assistant', 'Sorry, I could not process that now. Please try again.');
       } finally {
         setHomeVoiceBusy(false);
       }
@@ -357,8 +340,6 @@ export default function App() {
         return <PromotionsPanel lang={lang} onBack={goHome} />;
       case STATE.BALANCE:
         return <BalanceDisplay lang={lang} balance={balance} onBack={goHome} />;
-      case STATE.HELPER:
-        return <CallScreen lang={lang} kind="helper" onBack={goHome} />;
       case STATE.FAMILY:
         return <CallScreen lang={lang} kind="family" onBack={goHome} />;
       case STATE.HOME:
@@ -372,14 +353,12 @@ export default function App() {
             onPay={() => setAppState(STATE.PAY)}
             onDeals={() => setAppState(STATE.PROMOTIONS)}
             onVoice={() => {}}
-            onHelper={() => setAppState(STATE.HELPER)}
             onFamily={() => setAppState(STATE.FAMILY)}
             onVoiceMode={() => setAppState(STATE.LISTENING)}
-            onHelp={() => setAppState(STATE.HELPER)}
+            onHelp={() => setAppState(STATE.FAMILY)}
             chatMessages={homeChat}
             voiceBusy={homeVoiceBusy}
             onVoiceCaptured={handleHomeVoiceCaptured}
-            onChatSubmit={handleHomeTextSubmit}
           />
         );
     }

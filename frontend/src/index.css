@@ -40,13 +40,16 @@
 
 /* Phone-frame look on desktop */
 .phone-frame {
-  width: 100%;
-  max-width: 420px;
-  min-height: 100vh;
-  min-height: 100dvh; /* dynamic viewport for iOS browser chrome */
+  /* Lock UI to a phone-like ratio (9:19.5) on all screens. */
+  aspect-ratio: 9 / 19.5;
+  width: min(100vw, calc(100dvh * (9 / 19.5)));
+  height: min(100dvh, calc(100vw * (19.5 / 9)));
+  max-width: none;
+  min-height: 0;
   background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%);
   box-shadow: 0 30px 60px -20px rgba(15, 23, 42, 0.25);
   border-radius: 0;
+  overflow: hidden;
 }
 
 /* iPhone-class narrow screens: slightly tighter spacing and controls. */
@@ -65,9 +68,7 @@
 @media (min-width: 480px) {
   .phone-frame {
     border-radius: 36px;
-    margin: 24px auto;
-    min-height: calc(100vh - 48px);
-    overflow: hidden;
+    margin: 0 auto;
   }
 }
 
@@ -80,4 +81,27 @@
     rgba(22, 82, 161, 0.6) 50%,
     rgba(22, 82, 161, 0.0) 100%
   );
+}
+
+/* Slim chat scrollbar so text cards have more width. */
+.chat-scroll-thin {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100, 116, 139, 0.55) transparent;
+}
+
+.chat-scroll-thin::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat-scroll-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.chat-scroll-thin::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.5);
+  border-radius: 9999px;
+}
+
+.chat-scroll-thin::-webkit-scrollbar-thumb:hover {
+  background: rgba(71, 85, 105, 0.75);
 }
