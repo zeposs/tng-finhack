@@ -183,7 +183,22 @@ def tts_endpoint():
     except TimeoutError as e:
         return jsonify({"error": f"TTS timeout: {str(e)}"}), 504
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        message = str(e)
+        payload = {"error": message}
+
+        if (
+            "TTS failed for all configured models" in message
+            or "ModelNotFound" in message
+            or "Model not found" in message
+            or "Model not exist" in message
+        ):
+            payload["hint"] = (
+                "Cloud TTS model is unavailable for this API key/region. "
+                "Update TTS_MODEL and TTS_MODEL_FALLBACKS in backend/.env to supported models, "
+                "or continue with browser speech synthesis."
+            )
+
+        return jsonify(payload), 500
 
 
 @app.route("/api/transactions", methods=["GET"])

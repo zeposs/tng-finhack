@@ -29,10 +29,6 @@ def _candidate_tts_models() -> list[str]:
             deduped.append(model)
             seen.add(model)
     return deduped
-dashscope.base_http_api_url = os.getenv(
-    "DASHSCOPE_BASE_HTTP_API_URL",
-    "https://dashscope-intl.aliyuncs.com/api/v1",
-)
 
 
 def text_to_speech(text: str, language: str = "en") -> bytes:
@@ -44,7 +40,7 @@ def text_to_speech(text: str, language: str = "en") -> bytes:
     }
     voice = voice_map.get(language, "loongstella")
 
-    last_error = None
+    model_errors: list[str] = []
     for model_name in _candidate_tts_models():
         try:
             synthesizer = SpeechSynthesizer(
@@ -60,11 +56,16 @@ def text_to_speech(text: str, language: str = "en") -> bytes:
                 if blob:
                     return blob
 
-            last_error = RuntimeError(f"empty audio data from model '{model_name}'")
+            model_errors.append(f"{model_name}: empty audio payload")
         except Exception as model_error:
-            last_error = model_error
+            model_errors.append(
+                f"{model_name}: {type(model_error).__name__}: {str(model_error) or 'unknown error'}"
+            )
             continue
 
-    raise Exception(
-        f"TTS failed for all models {_candidate_tts_models()}: {last_error}"
+    raise RuntimeError(
+        "TTS failed for all configured models. "
+        f"Tried models={_candidate_tts_models()} with voice='{voice}'. "
+        "This usually means the configured TTS models are unavailable for your API key or region. "
+        f"Details: {'; '.join(model_errors) if model_errors else 'unknown error'}"
     )

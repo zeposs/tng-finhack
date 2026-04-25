@@ -47,8 +47,48 @@ export default function App() {
     }
   };
 
-  const speakWithBrowser = (text, langCode) => {
-    if (!('speechSynthesis' in window)) return false;
+  const disableBrowserTTSMode = () => {
+    setPreferBrowserTTS(false);
+    try {
+      window.localStorage.removeItem(BROWSER_TTS_PREF_KEY);
+    } catch {
+      // ignore storage errors
+    }
+  };
+
+  const waitForSpeechVoices = (timeoutMs = 1200) => {
+    if (!('speechSynthesis' in window)) return Promise.resolve([]);
+    const synth = window.speechSynthesis;
+    const existing = synth.getVoices();
+    if (existing.length > 0) return Promise.resolve(existing);
+
+    return new Promise((resolve) => {
+      const onVoicesChanged = () => {
+        cleanup();
+        resolve(synth.getVoices());
+      };
+
+      const timer = setTimeout(() => {
+        cleanup();
+        resolve(synth.getVoices());
+      }, timeoutMs);
+
+      const cleanup = () => {
+        clearTimeout(timer);
+        synth.removeEventListener('voiceschanged', onVoicesChanged);
+      };
+
+      synth.addEventListener('voiceschanged', onVoicesChanged);
+    });
+  };
+
+  const speakWithBrowser = async (text, langCode) => {
+    if (!('speechSynthesis' in window)) {
+      return { ok: false, reason: 'speechSynthesis not supported in browser' };
+    }
+    if (!text?.trim()) {
+      return { ok: false, reason: 'empty text' };
+    }
 
     const speechLang = {
       en: 'en-US',
@@ -56,16 +96,52 @@ export default function App() {
       zh: 'zh-CN',
     }[langCode] || 'en-US';
 
+    const synth = window.speechSynthesis;
+    const voices = await waitForSpeechVoices();
+    const voice =
+      voices.find((v) => v.lang === speechLang) ||
+      voices.find((v) => v.lang?.toLowerCase().startsWith(speechLang.split('-')[0].toLowerCase())) ||
+      null;
+
     try {
-      window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = speechLang;
       utterance.rate = 1.0;
       utterance.pitch = 1.0;
-      window.speechSynthesis.speak(utterance);
-      return true;
-    } catch {
-      return false;
+      if (voice) utterance.voice = voice;
+
+      const started = await new Promise((resolve) => {
+        let settled = false;
+        const settle = (ok, reason) => {
+          if (settled) return;
+          settled = true;
+          resolve({ ok, reason });
+        };
+
+        const startTimeout = setTimeout(() => {
+          settle(false, 'speech did not start (blocked or unavailable voice engine)');
+        }, 2200);
+
+        utterance.onstart = () => {
+          clearTimeout(startTimeout);
+          settle(true, 'speech started');
+        };
+        utterance.onerror = (event) => {
+          clearTimeout(startTimeout);
+          settle(false, event?.error || 'speech synthesis error');
+        };
+
+        synth.cancel();
+        synth.resume();
+        synth.speak(utterance);
+      });
+
+      return started;
+    } catch (err) {
+      return {
+        ok: false,
+        reason: err?.message || 'speech synthesis failed to initialize',
+      };
     }
   };
 
@@ -117,9 +193,17 @@ export default function App() {
       if (result.text) {
         if (preferBrowserTTS) {
           addDebug('TTS', 'Using browser speech synthesis (cloud TTS disabled)');
-          const fallbackOk = speakWithBrowser(result.text, language);
-          addDebug('TTS Fallback', fallbackOk ? 'Browser speech synthesis used' : 'Unavailable');
-          return;
+          const browserResult = await speakWithBrowser(result.text, language);
+          addDebug(
+            'TTS Fallback',
+            browserResult.ok ? 'Browser speech synthesis started' : `Failed: ${browserResult.reason}`
+          );
+
+          if (browserResult.ok) {
+            return;
+          }
+
+          addDebug('TTS', 'Browser speech failed, retrying cloud TTS once');
         }
 
         try {
@@ -129,7 +213,21 @@ export default function App() {
           addDebug('TTS Result', `Audio received: ${(audioData.size / 1024).toFixed(1)} KB`);
           const audioUrl = URL.createObjectURL(audioData);
           const audio = new Audio(audioUrl);
-          audio.play().catch(() => {});
+          audio.onended = () => URL.revokeObjectURL(audioUrl);
+          audio.onerror = () => URL.revokeObjectURL(audioUrl);
+          audio.play().catch(async (playErr) => {
+            addDebug('TTS Audio Play Error', playErr?.message || 'Autoplay blocked');
+            const browserResult = await speakWithBrowser(result.text, language);
+            addDebug(
+              'TTS Fallback',
+              browserResult.ok ? 'Browser speech synthesis started' : `Failed: ${browserResult.reason}`
+            );
+          });
+
+          if (preferBrowserTTS) {
+            disableBrowserTTSMode();
+            addDebug('TTS Mode', 'Cloud TTS recovered, browser-only mode disabled');
+          }
         } catch (ttsErr) {
           addDebug('TTS Error', ttsErr.message || 'Failed');
           const errorText = String(ttsErr?.response?.data || ttsErr?.message || '');
@@ -141,8 +239,15 @@ export default function App() {
             enableBrowserTTSMode();
             addDebug('TTS Mode', 'Cloud TTS unavailable, switching to browser TTS');
           }
-          const fallbackOk = speakWithBrowser(result.text, language);
-          addDebug('TTS Fallback', fallbackOk ? 'Browser speech synthesis used' : 'Unavailable');
+          const browserResult = await speakWithBrowser(result.text, language);
+          addDebug(
+            'TTS Fallback',
+            browserResult.ok ? 'Browser speech synthesis started' : `Failed: ${browserResult.reason}`
+          );
+
+          if (!browserResult.ok) {
+            addDebug('TTS Hint', 'Tap "Read Aloud" in the result card to trigger speech manually');
+          }
         }
       }
     } catch (err) {
@@ -170,6 +275,15 @@ export default function App() {
         error: backendMessage || err.message,
       });
     }
+  };
+
+  const handleReplaySpeech = async () => {
+    if (!agentResult?.text) return;
+    const browserResult = await speakWithBrowser(agentResult.text, language);
+    addDebug(
+      'Manual TTS',
+      browserResult.ok ? 'Browser speech synthesis started' : `Failed: ${browserResult.reason}`
+    );
   };
 
   const handlePipelineComplete = useCallback(() => {
@@ -227,6 +341,7 @@ export default function App() {
           <AgentResult
             data={agentResult}
             onVerify={handleVerify}
+            onReplaySpeech={handleReplaySpeech}
             onDone={goHome}
           />
         );

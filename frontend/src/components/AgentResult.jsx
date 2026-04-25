@@ -1,4 +1,4 @@
-export default function AgentResult({ data, onVerify, onDone }) {
+export default function AgentResult({ data, onVerify, onDone, onReplaySpeech }) {
   if (!data) return null;
 
   const needsVerify = data.needs_verification;
@@ -34,6 +34,14 @@ export default function AgentResult({ data, onVerify, onDone }) {
 
       {/* Action buttons */}
       <div className="flex flex-col gap-4 mt-8 w-full max-w-md">
+        {data.text && (
+          <button
+            onClick={onReplaySpeech}
+            className="w-full bg-gray-100 text-gray-700 py-4 rounded-2xl text-lg font-semibold transition-transform active:scale-95 cursor-pointer"
+          >
+            🔊 Read Aloud
+          </button>
+        )}
         {needsVerify && (
           <button
             onClick={onVerify}
