@@ -350,7 +350,10 @@ export default function App() {
             refreshing={refreshing}
             lang={lang}
             onRefresh={refreshBalance}
-            onPay={() => setAppState(STATE.PAY)}
+            onPay={() => {
+              setPaymentPrefill({ amount: 0, merchant: '' });
+              setAppState(STATE.SCANNER);
+            }}
             onDeals={() => setAppState(STATE.PROMOTIONS)}
             onVoice={() => {}}
             onFamily={() => setAppState(STATE.FAMILY)}
@@ -365,7 +368,7 @@ export default function App() {
   };
 
   return (
-    <div className="flex min-h-screen items-stretch justify-center bg-slate-200">
+    <div className="flex min-h-screen items-center justify-center bg-slate-900 p-0 sm:bg-slate-200 sm:p-4">
       {renderState()}
     </div>
   );

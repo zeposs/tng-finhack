@@ -5,47 +5,43 @@ import { useVoiceRecorder } from '../hooks/useVoiceRecorder.js';
 
 function HeaderBar({ onVoiceMode, onHelp, lang }) {
   return (
-    <div className="flex items-start justify-between px-5 pt-5">
-      <button
-        onClick={onVoiceMode}
-        className="flex items-center gap-2 rounded-full bg-white/15 px-4 py-2 text-sm font-bold text-white backdrop-blur active:scale-95"
-        aria-label={t(lang, 'voiceMode')}
-      >
-        <span className="text-xl leading-none">🔊</span>
-        <span className="leading-tight text-left">
-          {t(lang, 'voiceMode').split(' ').map((w, i) => (
-            <span key={i} className="block text-[11px]">{w}</span>
-          ))}
-        </span>
-      </button>
-
-      <Logo size={64} />
-
-      <button
-        onClick={onHelp}
-        className="flex items-center gap-2 rounded-full bg-white/15 px-4 py-2 text-sm font-bold text-white backdrop-blur active:scale-95"
-        aria-label={t(lang, 'help')}
-      >
-        <span className="text-xl leading-none">❓</span>
-        <span className="text-[13px]">{t(lang, 'help')}</span>
-      </button>
+    <div className="px-4 pt-2 sm:px-5 sm:pt-3">
+      <div className="mb-2 flex items-center justify-between text-[10px] font-semibold text-white/90 sm:text-xs">
+        <span>14:24</span>
+        <span>58%</span>
+      </div>
+      <div className="flex items-center justify-end">
+        <Logo size={64} />
+      </div>
     </div>
   );
 }
 
 function BalanceCard({ balance, lang, refreshing, onRefresh }) {
+  const [showBalance, setShowBalance] = React.useState(true);
   const now = new Date();
   const hh = String(now.getHours()).padStart(2, '0');
   const mm = String(now.getMinutes()).padStart(2, '0');
   return (
-    <div className="px-5 pb-5 text-white">
-      <div className="text-base font-semibold opacity-90">{t(lang, 'myBalance')}</div>
-      <div className="mt-1 text-5xl font-extrabold tracking-tight">
-        RM {Number(balance ?? 0).toFixed(2)}
+    <div className="px-4 pb-2 text-white sm:px-5 sm:pb-3">
+      <div className="text-[11px] font-semibold uppercase tracking-wide opacity-80 sm:text-xs">{t(lang, 'myBalance')}</div>
+      <div className="mt-0.5 flex items-center gap-2">
+        <span className="text-sm">💳</span>
+        <span className="text-4xl font-extrabold tracking-tight sm:text-5xl">
+          {showBalance ? `RM ${Number(balance ?? 0).toFixed(2)}` : 'RM ****'}
+        </span>
+        <button
+          onClick={() => setShowBalance((v) => !v)}
+          className="ml-1 inline-flex items-center rounded-full bg-white/15 px-2 py-1 text-[11px] font-semibold text-white active:scale-95"
+          aria-label={showBalance ? 'Hide balance' : 'Show balance'}
+          title={showBalance ? 'Hide balance' : 'Show balance'}
+        >
+          {showBalance ? '🙈' : '👁️'}
+        </button>
       </div>
       <button
         onClick={onRefresh}
-        className="mt-1 flex items-center gap-1 text-sm opacity-90 active:opacity-60"
+        className="mt-1 flex items-center gap-1 text-[11px] opacity-85 active:opacity-60 sm:text-xs"
       >
         <span>{t(lang, 'lastUpdated')}: {hh}:{mm}</span>
         <span className={refreshing ? 'animate-spin' : ''}>↻</span>
@@ -54,18 +50,18 @@ function BalanceCard({ balance, lang, refreshing, onRefresh }) {
   );
 }
 
-function ActionTile({ onClick, icon, iconBg, label, hint, color, accent }) {
+function ActionTile({ onClick, icon, iconBg, label, hint, color, accent, minHeight = 80 }) {
   return (
     <button
       onClick={onClick}
       className="qm-btn bg-white"
-      style={{ border: `2px solid ${accent}22` }}
+      style={{ border: `2px solid ${accent}22`, minHeight }}
     >
-      <div className="qm-btn-icon" style={{ background: iconBg, color }}>
+      <div className="qm-btn-icon h-20 w-20 text-5xl sm:h-24 sm:w-24 sm:text-6xl" style={{ background: iconBg, color }}>
         {icon}
       </div>
-      <div className="text-2xl font-extrabold" style={{ color }}>{label}</div>
-      <div className="text-[13px] font-medium leading-tight text-slate-500">
+      <div className="text-base font-extrabold sm:text-xl" style={{ color }}>{label}</div>
+      <div className="text-[11px] font-medium leading-tight text-slate-500 sm:text-xs">
         {hint}
       </div>
     </button>
@@ -76,11 +72,11 @@ function PrimaryBottomAction({ onClick, icon, label, hint, bgClass, ringClass })
   return (
     <button
       onClick={onClick}
-      className={`flex min-h-[112px] w-full flex-col items-center justify-center rounded-3xl px-3 py-3 text-center shadow-soft transition active:scale-[0.97] sm:min-h-[132px] sm:px-4 sm:py-4 ${bgClass} ${ringClass}`}
+      className={`flex min-h-[88px] w-full flex-col items-center justify-center rounded-3xl px-3 py-2 text-center shadow-soft transition active:scale-[0.97] sm:min-h-[120px] sm:px-4 sm:py-4 ${bgClass} ${ringClass}`}
     >
-      <div className="text-3xl leading-none sm:text-4xl">{icon}</div>
-      <div className="mt-1 text-2xl font-extrabold tracking-tight text-white sm:mt-2 sm:text-3xl">{label}</div>
-      <div className="mt-1 text-xs font-medium text-white/90 leading-snug sm:text-sm">{hint}</div>
+      <div className="text-4xl leading-none sm:text-6xl">{icon}</div>
+      <div className="mt-1 text-base font-extrabold tracking-tight text-white sm:mt-1.5 sm:text-2xl">{label}</div>
+      <div className="mt-0.5 text-[11px] font-medium text-white/90 leading-snug sm:text-xs">{hint}</div>
     </button>
   );
 }
@@ -112,15 +108,15 @@ function WeChatHoldVoiceButton({ lang, onCaptured, disabled }) {
         onPointerCancel={endHold}
         onPointerLeave={endHold}
         disabled={disabled || blocked}
-        className={`flex min-h-[112px] w-full select-none flex-col items-center justify-center rounded-3xl px-3 py-3 text-center shadow-soft transition sm:min-h-[132px] sm:px-4 sm:py-4 ${
+        className={`flex min-h-[88px] w-full select-none flex-col items-center justify-center rounded-3xl px-3 py-2 text-center shadow-soft transition sm:min-h-[120px] sm:px-4 sm:py-4 ${
           recording
             ? 'scale-[0.98] bg-gradient-to-b from-red-500 to-red-600 ring-2 ring-red-200'
             : 'active:scale-[0.97] bg-gradient-to-b from-violet-500 to-violet-600 ring-2 ring-violet-200'
         } ${disabled || blocked ? 'cursor-not-allowed opacity-70' : ''}`}
       >
-        <div className="text-3xl leading-none sm:text-4xl">{recording ? '🔴' : '🎙️'}</div>
-        <div className="mt-1 text-2xl font-extrabold tracking-tight text-white sm:mt-2 sm:text-3xl">{t(lang, 'voice')}</div>
-        <div className="mt-1 text-xs font-medium leading-snug text-white/90 sm:text-sm">
+        <div className="text-4xl leading-none sm:text-6xl">{recording ? '🔴' : '🎙️'}</div>
+        <div className="mt-1 text-base font-extrabold tracking-tight text-white sm:mt-1.5 sm:text-2xl">{t(lang, 'voice')}</div>
+        <div className="mt-0.5 text-[11px] font-medium leading-snug text-white/90 sm:text-xs">
           {recording ? t(lang, 'releaseToSend') : t(lang, 'holdToTalk')}
         </div>
       </button>
@@ -138,6 +134,7 @@ function WeChatHoldVoiceButton({ lang, onCaptured, disabled }) {
 function ChatBox({ lang, messages }) {
   const listRef = React.useRef(null);
   const endRef = React.useRef(null);
+  const lastUserQuestion = [...(messages || [])].reverse().find((m) => m?.role === 'user')?.text || '';
 
   React.useEffect(() => {
     if (!endRef.current || !listRef.current) return;
@@ -145,22 +142,29 @@ function ChatBox({ lang, messages }) {
   }, [messages]);
 
   return (
-    <div className="rounded-3xl border border-slate-200 bg-white p-3 shadow-sm">
-      <div className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-500">
-        {t(lang, 'chatboxTitle')}
+    <div className="flex h-full min-h-0 flex-col px-0">
+      <div className="mb-1 flex items-center justify-between gap-1.5">
+        <div className="text-xs font-bold uppercase tracking-wider text-slate-500">
+          {t(lang, 'chatboxTitle')}
+        </div>
+        {lastUserQuestion && (
+          <div className="max-w-[68%] truncate rounded-full bg-tng-blue/10 px-2 py-0.5 text-[10px] font-semibold text-tng-blue">
+            {lastUserQuestion}
+          </div>
+        )}
       </div>
-      <div ref={listRef} className="chat-scroll-thin max-h-36 space-y-2 overflow-y-auto rounded-2xl bg-slate-50 p-2">
+      <div ref={listRef} className="no-scrollbar h-[146px] space-y-1.5 overflow-y-auto rounded-2xl bg-transparent p-0 sm:h-[176px]">
         {messages?.length ? messages.map((m, i) => (
           <div
             key={`${m.role}-${i}`}
-            className={`rounded-2xl px-3 py-2 leading-snug ${
+            className={`rounded-xl px-2.5 py-1.5 leading-snug ${
               m.role === 'user'
-                ? 'ml-auto max-w-[92%] bg-tng-blue text-sm text-white'
-                : 'mr-auto w-full rounded-3xl border-2 border-tng-blue/25 bg-white px-4 py-4 text-xl font-extrabold leading-tight text-slate-800 shadow-sm'
+                ? 'ml-auto max-w-[88%] bg-tng-blue text-xs text-white sm:text-sm'
+                : 'mr-auto w-full rounded-2xl border border-tng-blue/25 bg-white px-2.5 py-2 text-base font-bold leading-tight text-slate-800 shadow-sm sm:px-3 sm:py-2.5 sm:text-xl'
             }`}
           >
             {m.role === 'assistant' && (
-              <div className="mb-2 text-xs font-bold uppercase tracking-wider text-tng-blue/70">
+              <div className="mb-1 text-[10px] font-bold uppercase tracking-wide text-tng-blue/70 sm:text-xs">
                 Assistant reply
               </div>
             )}
@@ -192,9 +196,9 @@ export default function QuickModeHome({
 }) {
   return (
     <div className="phone-frame flex flex-col">
-      <div className="bg-tng-blue rounded-b-[36px] pb-3" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+      <div className="bg-tng-blue pb-1 sm:pb-2" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
         <HeaderBar onVoiceMode={onVoiceMode} onHelp={onHelp} lang={lang} />
-        <div className="mt-1">
+        <div className="mt-1.5">
           <BalanceCard
             balance={balance}
             lang={lang}
@@ -204,21 +208,22 @@ export default function QuickModeHome({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-5 pt-4">
-        <ChatBox
-          lang={lang}
-          messages={chatMessages}
-        />
+      <div className="flex flex-1 flex-col overflow-hidden px-4 pt-2.5 sm:px-5 sm:pt-4">
+        <div className="min-h-0 flex-1">
+          <ChatBox
+            lang={lang}
+            messages={chatMessages}
+          />
+        </div>
 
-        <div className="h-4" />
-
-        <div className="grid grid-cols-2 gap-4">
+        <div className="mt-2.5 grid grid-cols-2 gap-2.5 sm:mt-4 sm:gap-4">
           <ActionTile
             onClick={onDeals}
             icon="📢"
             iconBg="#fef3c7"
             color="#d97706"
             accent="#f59e0b"
+            minHeight={78}
             label={t(lang, 'deals')}
             hint={t(lang, 'dealsHint')}
           />
@@ -228,22 +233,20 @@ export default function QuickModeHome({
             iconBg="#fce7f3"
             color="#db2777"
             accent="#db2777"
+            minHeight={78}
             label={t(lang, 'family')}
             hint={t(lang, 'familyHint')}
           />
         </div>
 
-        <div className="mb-4" />
+        <div className="mb-1 sm:mb-3" />
       </div>
 
       <div
-        className="border-t border-slate-200 bg-white/95 px-4 pt-3 backdrop-blur"
-        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)' }}
+        className="border-t border-slate-200 bg-white/95 px-3 pt-2.5 backdrop-blur sm:px-4 sm:pt-3"
+        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 8px)' }}
       >
-        <div className="mb-2 text-center text-xs font-bold uppercase tracking-wider text-slate-500">
-          {t(lang, 'quickActions')}
-        </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
           <PrimaryBottomAction
             onClick={onPay}
             icon="📷"

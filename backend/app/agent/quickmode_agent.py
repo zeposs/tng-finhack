@@ -50,16 +50,82 @@ _AMOUNT_RE = re.compile(r"(?:rm|myr|\$)?\s*(\d+(?:\.\d{1,2})?)", re.IGNORECASE)
 _MERCHANT_RE = re.compile(
     r"to\s+([A-Za-z0-9 '&.\-]{2,40})", re.IGNORECASE
 )
+_NUM_WORDS = {
+    "zero": 0,
+    "one": 1,
+    "two": 2,
+    "three": 3,
+    "four": 4,
+    "five": 5,
+    "six": 6,
+    "seven": 7,
+    "eight": 8,
+    "nine": 9,
+    "ten": 10,
+    "eleven": 11,
+    "twelve": 12,
+    "thirteen": 13,
+    "fourteen": 14,
+    "fifteen": 15,
+    "sixteen": 16,
+    "seventeen": 17,
+    "eighteen": 18,
+    "nineteen": 19,
+    "twenty": 20,
+    "thirty": 30,
+    "forty": 40,
+    "fifty": 50,
+    "sixty": 60,
+    "seventy": 70,
+    "eighty": 80,
+    "ninety": 90,
+}
 
 
 def _extract_amount(text: str) -> float | None:
     match = _AMOUNT_RE.search(text.replace(",", ""))
     if not match:
-        return None
+        return _extract_spoken_amount(text)
     try:
         return float(match.group(1))
     except ValueError:
-        return None
+        return _extract_spoken_amount(text)
+
+
+def _parse_word_number(token: str) -> int | None:
+    token = token.strip().lower()
+    if token in _NUM_WORDS:
+        return _NUM_WORDS[token]
+    if "-" in token:
+        left, right = token.split("-", 1)
+        if left in _NUM_WORDS and right in _NUM_WORDS:
+            return _NUM_WORDS[left] + _NUM_WORDS[right]
+    return None
+
+
+def _extract_spoken_amount(text: str) -> float | None:
+    lower = text.lower()
+    ringgit_match = re.search(r"\b([a-z-]+)\s+ringgit\s+([a-z-]+)\b", lower)
+    if ringgit_match:
+        whole = _parse_word_number(ringgit_match.group(1))
+        cents = _parse_word_number(ringgit_match.group(2))
+        if whole is not None and cents is not None:
+            if 0 <= cents < 100:
+                return float(f"{whole}.{cents:02d}")
+            return float(whole)
+
+    point_match = re.search(r"\b([a-z-]+)\s+point\s+([a-z-]+)\b", lower)
+    if point_match:
+        whole = _parse_word_number(point_match.group(1))
+        frac = _parse_word_number(point_match.group(2))
+        if whole is not None and frac is not None:
+            if frac < 10:
+                return float(f"{whole}.0{frac}")
+            if frac < 100:
+                return float(f"{whole}.{frac:02d}")
+            return float(whole)
+
+    return None
 
 
 def _extract_merchant(text: str) -> str | None:
@@ -97,7 +163,21 @@ def _fallback_router(text: str, language: str) -> QuickModeAgentResult:
         )
 
     if any(w in lower for w in ("pay", "bayar", "付", "支付", "transfer")):
-        amount = _extract_amount(lower) or 50.0
+        amount = _extract_amount(lower)
+        if amount is None:
+            return QuickModeAgentResult(
+                text=text,
+                language=language,
+                tool="unknown",
+                tool_args={},
+                payload={
+                    "tool": "unknown",
+                    "ok": False,
+                    "speech": "I heard a payment request, but I could not confirm the amount. Please say the amount again, for example: pay RM 3.50.",
+                    "requires_verification": False,
+                },
+                used_llm=False,
+            )
         merchant = _extract_merchant(text) or "Merchant"
         payload = tool_make_payment(amount=amount, merchant=merchant)
         return QuickModeAgentResult(
@@ -188,19 +268,42 @@ def _build_langchain_agent():
     tools = [check_balance, make_payment, top_up_wallet, verify_identity]
 
     system_prompt = (
-        "You are the Touch 'n Go eWallet Quick Mode voice assistant for "
-        "senior Malaysian users.\n"
+        "You are a warm, patient Touch 'n Go eWallet Quick Mode assistant for "
+        "elderly Malaysian users.\n"
+        "\n"
+        "PRIMARY GOALS:\n"
+        "1) Be easy to understand.\n"
+        "2) Be reassuring and polite.\n"
+        "3) Help users complete one step at a time safely.\n"
+        "\n"
+        "STYLE RULES:\n"
+        "- Use very simple language with short sentences.\n"
+        "- Avoid jargon and technical terms.\n"
+        "- Be respectful, calm, and encouraging.\n"
+        "- Keep replies concise unless user asks for more detail.\n"
+        "- Use the user's language.\n"
+        "\n"
+        "INTERACTION RULES:\n"
+        "- Ask only one question at a time.\n"
+        "- Give clear next actions.\n"
+        "- Repeat important details clearly (amount, merchant, balance).\n"
+        "- Confirm intent before payment or top-up actions.\n"
+        "- If unclear, ask for clarification instead of guessing.\n"
+        "\n"
+        "SAFETY RULES:\n"
+        "- Never guess transaction details.\n"
+        "- Always be clear before final confirmation.\n"
+        "- Protect user privacy; do not request unnecessary personal data.\n"
         "\n"
         "TOOL POLICY — VERY IMPORTANT:\n"
         "- Call EXACTLY ONE tool per user request, then STOP. Do not chain.\n"
-        "- For 'balance', 'baki', '余额'  → call check_balance.\n"
-        "- For 'pay', 'bayar', '付'        → call make_payment(amount, merchant).\n"
-        "- For 'top up', 'tambah', '充值' → call top_up_wallet(amount).\n"
-        "- DO NOT call verify_identity yourself — the UI handles that step "
-        "  automatically after make_payment or top_up_wallet.\n"
-        "- Currency is always Malaysian Ringgit (RM). If no merchant is given, "
-        "  use 'Merchant'. If no amount is given for top up, use 100.\n"
-        "- Reply briefly and kindly, in the user's language."
+        "- For balance intent → call check_balance.\n"
+        "- For payment intent → call make_payment(amount, merchant).\n"
+        "- For top up intent → call top_up_wallet(amount).\n"
+        "- DO NOT call verify_identity yourself; UI handles verification.\n"
+        "- Currency is always Malaysian Ringgit (RM).\n"
+        "- If merchant is missing, use 'Merchant'.\n"
+        "- If top up amount is missing, use 100.\n"
     )
 
     try:

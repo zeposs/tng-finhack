@@ -16,16 +16,16 @@ export default function PaymentPanel({ lang, onBack, onProceed }) {
 
   return (
     <div className="phone-frame flex flex-col bg-white">
-      <div className="bg-tng-blue px-5 pt-6 pb-8 text-white rounded-b-[36px]">
+      <div className="bg-tng-blue rounded-b-[28px] px-4 pt-5 pb-6 text-white sm:rounded-b-[36px] sm:px-5 sm:pt-6 sm:pb-8">
         <button onClick={onBack} className="text-sm font-semibold opacity-80 active:opacity-50">
           ← {t(lang, 'back')}
         </button>
-        <h1 className="mt-2 text-3xl font-extrabold">{t(lang, 'payTitle')}</h1>
+        <h1 className="mt-2 text-2xl font-extrabold sm:text-3xl">{t(lang, 'payTitle')}</h1>
         <div className="mt-1 text-sm opacity-90">{t(lang, 'paySub')}</div>
       </div>
 
-      <div className="flex-1 space-y-4 overflow-y-auto px-5 py-5">
-        <div className="rounded-2xl border-2 border-emerald-100 bg-emerald-50 p-4">
+      <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4 sm:space-y-4 sm:px-5 sm:py-5">
+        <div className="rounded-2xl border-2 border-emerald-100 bg-emerald-50 p-3.5 sm:p-4">
           <div className="text-base font-bold text-emerald-800">{t(lang, 'scanPay')}</div>
           <div className="mt-1 text-sm text-emerald-700">{t(lang, 'scanPayHint')}</div>
           <button
@@ -36,7 +36,7 @@ export default function PaymentPanel({ lang, onBack, onProceed }) {
           </button>
         </div>
 
-        <div className="rounded-2xl border-2 border-slate-100 bg-white p-4 shadow-sm">
+        <div className="rounded-2xl border-2 border-slate-100 bg-white p-3.5 shadow-sm sm:p-4">
           <div className="text-base font-bold text-slate-800">{t(lang, 'payMerchant')}</div>
 
           <label className="mt-3 block text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -45,7 +45,7 @@ export default function PaymentPanel({ lang, onBack, onProceed }) {
           <input
             value={merchant}
             onChange={(e) => setMerchant(e.target.value)}
-            className="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-3 text-base focus:border-tng-blue focus:outline-none"
+            className="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-base focus:border-tng-blue focus:outline-none"
             placeholder={t(lang, 'merchantPlaceholder')}
           />
 
@@ -56,7 +56,7 @@ export default function PaymentPanel({ lang, onBack, onProceed }) {
             value={amountText}
             onChange={(e) => setAmountText(e.target.value)}
             inputMode="decimal"
-            className="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-3 text-base focus:border-tng-blue focus:outline-none"
+            className="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-base focus:border-tng-blue focus:outline-none"
             placeholder="50.00"
           />
 
@@ -74,11 +74,11 @@ export default function PaymentPanel({ lang, onBack, onProceed }) {
         </div>
       </div>
 
-      <div className="px-5 pb-6">
+      <div className="px-4 pb-4 sm:px-5 sm:pb-6">
         <button
           disabled={!canProceed}
           onClick={() => onProceed({ merchant: merchant.trim(), amount })}
-          className={`w-full rounded-2xl py-4 text-lg font-extrabold text-white transition ${
+          className={`w-full rounded-2xl py-3.5 text-base font-extrabold text-white transition sm:py-4 sm:text-lg ${
             canProceed ? 'bg-tng-blue active:scale-95' : 'bg-slate-300 cursor-not-allowed'
           }`}
         >

@@ -84,17 +84,17 @@ export default function VoiceRecorder({ lang, onAudioCaptured, onTextSubmit, onC
 
   return (
     <div className="phone-frame flex flex-col bg-white">
-      <div className="bg-tng-blue px-5 pt-6 pb-8 text-white rounded-b-[36px]">
+      <div className="bg-tng-blue rounded-b-[28px] px-4 pt-5 pb-6 text-white sm:rounded-b-[36px] sm:px-5 sm:pt-6 sm:pb-8">
         <button onClick={onCancel} className="text-sm font-semibold opacity-80 active:opacity-50">
           ← {t(lang, 'back')}
         </button>
-        <h1 className="mt-2 text-3xl font-extrabold">{t(lang, 'voice')}</h1>
+        <h1 className="mt-2 text-2xl font-extrabold sm:text-3xl">{t(lang, 'voice')}</h1>
       </div>
 
-      <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-6 py-5">
-        <div className="rounded-2xl bg-slate-50 p-4">
+      <div className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 py-4 sm:gap-4 sm:px-6 sm:py-5">
+        <div className="rounded-2xl bg-slate-50 p-3.5 sm:p-4">
           <div className="text-sm font-semibold text-slate-500">{t(lang, 'examples')}</div>
-          <ul className="mt-1 space-y-1 text-base font-medium text-slate-700">
+          <ul className="mt-1 space-y-1 text-sm font-medium text-slate-700 sm:text-base">
             <li>• "{t(lang, 'example1')}"</li>
             <li>• "{t(lang, 'example2')}"</li>
             <li>• "{t(lang, 'example3')}"</li>
@@ -116,11 +116,11 @@ export default function VoiceRecorder({ lang, onAudioCaptured, onTextSubmit, onC
               value={text}
               onChange={(e) => setText(e.target.value)}
               placeholder={t(lang, 'example1')}
-              className="min-w-0 flex-1 rounded-xl border-2 border-slate-200 px-3 py-3 text-base focus:border-tng-blue focus:outline-none"
+              className="min-w-0 flex-1 rounded-xl border-2 border-slate-200 px-3 py-2.5 text-base focus:border-tng-blue focus:outline-none"
             />
             <button
               type="submit"
-              className="rounded-xl bg-tng-blue px-4 py-3 text-base font-bold text-white active:scale-95"
+              className="rounded-xl bg-tng-blue px-4 py-2.5 text-sm font-bold text-white active:scale-95 sm:text-base"
             >
               {t(lang, 'send')}
             </button>
@@ -137,16 +137,16 @@ export default function VoiceRecorder({ lang, onAudioCaptured, onTextSubmit, onC
         )}
       </div>
 
-      <div className="border-t border-slate-100 bg-white px-6 pb-7 pt-5">
+      <div className="border-t border-slate-100 bg-white px-4 pb-5 pt-4 sm:px-6 sm:pb-7 sm:pt-5">
         <div className="mb-3 text-center">
-          <div className="text-xl font-extrabold text-slate-800">{statusLine}</div>
+          <div className="text-lg font-extrabold text-slate-800 sm:text-xl">{statusLine}</div>
           {recording && (
-            <div className="mt-1 text-sm text-slate-500">{t(lang, 'tapToStop')}</div>
+            <div className="mt-1 text-xs text-slate-500 sm:text-sm">{t(lang, 'tapToStop')}</div>
           )}
         </div>
 
         <div className="flex justify-center">
-          <div className="relative flex h-28 w-28 items-center justify-center">
+          <div className="relative flex h-24 w-24 items-center justify-center sm:h-28 sm:w-28">
             {recording && (
               <>
                 <span className="absolute inset-0 rounded-full bg-red-400/40 animate-pulse-ring" />
@@ -159,7 +159,7 @@ export default function VoiceRecorder({ lang, onAudioCaptured, onTextSubmit, onC
             <button
               onClick={handleMicTap}
               disabled={!supported || !isSecureContext}
-              className={`relative flex h-24 w-24 items-center justify-center rounded-full text-4xl text-white shadow-soft transition active:scale-95 ${
+              className={`relative flex h-20 w-20 items-center justify-center rounded-full text-3xl text-white shadow-soft transition active:scale-95 sm:h-24 sm:w-24 sm:text-4xl ${
                 recording
                   ? 'bg-red-500'
                   : showMicError

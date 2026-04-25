@@ -105,6 +105,9 @@ def voice():
         suffix=suffix,
         sample_rate=sample_rate,
     )
+    if stt_result.get("error"):
+        return jsonify({"error": stt_result["error"], "stt": stt_result}), 503
+
     text = stt_result["text"]
 
     intent_hint = quick_intent_from_text(text)

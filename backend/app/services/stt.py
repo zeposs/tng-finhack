@@ -1,8 +1,4 @@
-"""Speech-to-Text wrapper around DashScope (Qwen Audio / Paraformer).
-
-Falls back to a heuristic mock when ``settings.is_mock`` is True, so the
-hackathon demo still flows even without an API key.
-"""
+"""Speech-to-Text wrapper around DashScope (Qwen Audio / Paraformer)."""
 from __future__ import annotations
 
 import logging
@@ -37,21 +33,6 @@ def _normalise_lang(lang: str | None) -> str:
     return _LANG_HINT_MAP.get(lang.lower().strip(), "en")
 
 
-def _mock_transcribe(_path: Path, lang: str) -> str:
-    """A deterministic, demo-friendly mock transcription.
-
-    The real demo always supplies a typed-text fallback button so the
-    judges never see this output. This is purely a safety net for offline
-    development.
-    """
-    canned = {
-        "en": "What is my balance?",
-        "ms": "Berapa baki saya?",
-        "zh": "我的余额是多少？",
-    }
-    return canned.get(lang, canned["en"])
-
-
 def transcribe(
     audio_bytes: bytes,
     language: str | None = "en",
@@ -64,14 +45,18 @@ def transcribe(
     resampling client-side). Other formats are still accepted but the model
     may reject them.
 
-    Returns ``{"text": str, "language": str, "mock": bool}``.
+    Returns ``{"text": str, "language": str, "provider": "qwen_stt"}`` on success.
+    Returns ``{"error": str, "language": str, "provider": "qwen_stt"}`` on failure.
     """
     norm_lang = _normalise_lang(language)
     audio_path = _save_audio_to_tempfile(audio_bytes, suffix=suffix)
 
     if settings.is_mock:
-        text = _mock_transcribe(audio_path, norm_lang)
-        return {"text": text, "language": norm_lang, "mock": True}
+        return {
+            "error": "Qwen STT is disabled (mock mode or missing API key).",
+            "language": norm_lang,
+            "provider": "qwen_stt",
+        }
 
     try:
         from app.services.dashscope_client import configure_dashscope
@@ -110,20 +95,25 @@ def transcribe(
             text = (result.output or {}).get("text", "")
 
         if not text:
-            log.warning("DashScope STT returned no text; falling back to mock")
-            text = _mock_transcribe(audio_path, norm_lang)
-            return {"text": text, "language": norm_lang, "mock": True}
+            log.warning("DashScope STT returned no text.")
+            return {
+                "error": "Qwen STT returned no transcription text.",
+                "language": norm_lang,
+                "provider": "qwen_stt",
+            }
 
-        return {"text": text.strip(), "language": norm_lang, "mock": False}
+        return {
+            "text": text.strip(),
+            "language": norm_lang,
+            "provider": "qwen_stt",
+        }
 
     except Exception as exc:  # pragma: no cover - safety net for demo
         log.exception("DashScope STT failed: %s", exc)
-        text = _mock_transcribe(audio_path, norm_lang)
         return {
-            "text": text,
-            "language": norm_lang,
-            "mock": True,
             "error": str(exc),
+            "language": norm_lang,
+            "provider": "qwen_stt",
         }
     finally:
         try:
@@ -133,6 +123,69 @@ def transcribe(
 
 
 _AMOUNT_RE = re.compile(r"(?:rm|myr|\$)?\s*(\d+(?:\.\d{1,2})?)", re.IGNORECASE)
+_NUM_WORDS = {
+    "zero": 0,
+    "one": 1,
+    "two": 2,
+    "three": 3,
+    "four": 4,
+    "five": 5,
+    "six": 6,
+    "seven": 7,
+    "eight": 8,
+    "nine": 9,
+    "ten": 10,
+    "eleven": 11,
+    "twelve": 12,
+    "thirteen": 13,
+    "fourteen": 14,
+    "fifteen": 15,
+    "sixteen": 16,
+    "seventeen": 17,
+    "eighteen": 18,
+    "nineteen": 19,
+    "twenty": 20,
+    "thirty": 30,
+    "forty": 40,
+    "fifty": 50,
+    "sixty": 60,
+    "seventy": 70,
+    "eighty": 80,
+    "ninety": 90,
+}
+
+
+def _parse_word_number(token: str) -> int | None:
+    token = token.strip().lower()
+    if token in _NUM_WORDS:
+        return _NUM_WORDS[token]
+    if "-" in token:
+        left, right = token.split("-", 1)
+        if left in _NUM_WORDS and right in _NUM_WORDS:
+            return _NUM_WORDS[left] + _NUM_WORDS[right]
+    return None
+
+
+def _extract_spoken_amount(lower: str) -> float | None:
+    ringgit_match = re.search(r"\b([a-z-]+)\s+ringgit\s+([a-z-]+)\b", lower)
+    if ringgit_match:
+        whole = _parse_word_number(ringgit_match.group(1))
+        cents = _parse_word_number(ringgit_match.group(2))
+        if whole is not None and cents is not None:
+            if 0 <= cents < 100:
+                return float(f"{whole}.{cents:02d}")
+            return float(whole)
+    point_match = re.search(r"\b([a-z-]+)\s+point\s+([a-z-]+)\b", lower)
+    if point_match:
+        whole = _parse_word_number(point_match.group(1))
+        frac = _parse_word_number(point_match.group(2))
+        if whole is not None and frac is not None:
+            if frac < 10:
+                return float(f"{whole}.0{frac}")
+            if frac < 100:
+                return float(f"{whole}.{frac:02d}")
+            return float(whole)
+    return None
 
 
 def quick_intent_from_text(text: str) -> dict:
@@ -149,6 +202,8 @@ def quick_intent_from_text(text: str) -> dict:
             amount = float(match.group(1))
         except ValueError:
             amount = None
+    if amount is None:
+        amount = _extract_spoken_amount(lower)
 
     if any(w in lower for w in ("balance", "baki", "余额", "余", "多少钱")):
         return {"action": "check_balance", "amount": None}
