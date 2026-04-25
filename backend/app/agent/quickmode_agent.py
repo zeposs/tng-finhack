@@ -1,4 +1,4 @@
-"""LangChain agent that routes user voice commands to one of 4 tools.
+"""LangChain agent that routes user voice commands to Quick Mode tools.
 
 Strategy:
 1. Try the real LangChain ``AgentExecutor`` with Qwen (DashScope).
@@ -8,6 +8,7 @@ Strategy:
 """
 from __future__ import annotations
 
+import json
 import logging
 import re
 from dataclasses import dataclass, field, asdict
@@ -15,6 +16,7 @@ from typing import Any
 
 from app.config import settings
 from app.agent.tools import (
+    tool_best_deal,
     tool_check_balance,
     tool_make_payment,
     tool_top_up_wallet,
@@ -135,12 +137,126 @@ def _extract_merchant(text: str) -> str | None:
     return match.group(1).strip().rstrip(".").strip()
 
 
+def _text_from_message_content(content: Any) -> str:
+    if isinstance(content, str):
+        return content.strip()
+    if isinstance(content, list):
+        parts: list[str] = []
+        for block in content:
+            if isinstance(block, str):
+                parts.append(block)
+            elif isinstance(block, dict) and block.get("type") == "text" and block.get("text"):
+                parts.append(str(block["text"]))
+        return "".join(parts).strip()
+    if content is None:
+        return ""
+    return str(content).strip()
+
+
+def _last_assistant_text(messages: list[Any] | None) -> str | None:
+    """Final natural-language reply from the LangGraph agent (after tools)."""
+    for msg in reversed(messages or []):
+        if getattr(msg, "type", None) != "ai":
+            continue
+        t = _text_from_message_content(getattr(msg, "content", None))
+        if t:
+            return t
+    return None
+
+
+def phrase_user_visible_reply(user_text: str, language: str, payload: dict[str, Any]) -> str | None:
+    """One-shot Qwen: turn tool JSON into a short voice-style line (no agent graph)."""
+    if settings.is_mock or not (settings.dashscope_api_key or "").strip():
+        return None
+    try:
+        from app.services.dashscope_client import configure_dashscope
+        configure_dashscope()
+        from langchain_community.chat_models import ChatTongyi
+        from langchain_core.messages import HumanMessage, SystemMessage
+
+        safe_payload = {k: v for k, v in payload.items() if k != "speech"}
+        llm = ChatTongyi(
+            model_name=settings.qwen_llm_model,
+            dashscope_api_key=settings.dashscope_api_key,
+            streaming=False,
+        )
+        system = (
+            "You are Touch 'n Go eWallet Quick Mode. The listener is often a senior citizen.\n"
+            "Write ONLY the assistant's spoken reply: 2-4 very short, simple sentences.\n"
+            "Language: English if user_language is en; Bahasa Malaysia if ms or bm; "
+            "Simplified Chinese if zh.\n"
+            "Use ONLY facts from assistant_tool_json. Never invent merchants, amounts, balances, "
+            "or offers.\n"
+            "\n"
+            "By tool / outcome:\n"
+            "- check_balance: say wallet balance in RM using the balance field.\n"
+            "- make_payment ok true: amount, merchant; if requires_verification, say they will scan "
+            "QR next and confirm with thumbprint.\n"
+            "- make_payment ok false + reason invalid_amount: amount is not valid for payment.\n"
+            "- make_payment ok false + reason insufficient_balance: use balance and amount fields; "
+            "suggest topping up.\n"
+            "- top_up_wallet ok true: amount; if requires_verification mention thumbprint confirmation.\n"
+            "- top_up_wallet ok false + reason invalid_amount: top-up amount not valid.\n"
+            "- verify_identity: calmly ask for thumb on sensor to verify.\n"
+            "- best_deal ok true: describe the strongest promotion in natural, varied wording using "
+            "only merchant, title, save_amount, promotions_count from the JSON. Do not follow a "
+            "rigid template or always open the same way; sound like a real assistant.\n"
+            "- best_deal ok false + reason no_promotions: briefly explain there are no partner promos "
+            "in the list yet; be helpful without stock filler.\n"
+            "- unknown ok false + reason payment_amount_missing: user wants to pay but amount unclear; "
+            "ask them to say an amount like pay RM 3.50.\n"
+            "- unknown ok false + reason no_intent_match: gently say you did not understand; suggest "
+            "balance, pay, top up, or best deal — one short suggestion.\n"
+            "- transaction_result outcome payment_success: congratulate briefly; amount, merchant, "
+            "balance_after in RM.\n"
+            "- transaction_result outcome topup_success: confirm reload amount and balance_after.\n"
+            "- welcome_hint: one warm sentence; invite them to hold the voice button and try balance, "
+            "pay, top up, or best deal.\n"
+            "- unknown + reason assistant_unreachable: say the assistant could not be reached; ask to try again.\n"
+            "\n"
+            "Do not output JSON, bullet lists, or role labels — only words the user should hear."
+        )
+        human = (
+            f"user_language={language}\n"
+            f"user_words={user_text!r}\n"
+            f"assistant_tool_json={json.dumps(safe_payload, ensure_ascii=False)}"
+        )
+        out = llm.invoke([SystemMessage(content=system), HumanMessage(content=human)])
+        return _text_from_message_content(getattr(out, "content", None)) or None
+    except Exception as exc:  # pragma: no cover
+        log.warning("Qwen phrasing call failed (%s)", exc)
+        return None
+
+
+def _merge_payload_speech(
+    user_text: str,
+    language: str,
+    observation: dict[str, Any] | None,
+    messages: list[Any] | None,
+) -> dict[str, Any]:
+    if isinstance(observation, dict):
+        payload = {k: v for k, v in observation.items() if k != "speech"}
+    else:
+        payload = {"tool": "unknown", "reason": "non_dict_observation", "detail": str(observation)}
+
+    voice = _last_assistant_text(messages)
+    if voice:
+        payload["speech"] = voice.strip()
+        return payload
+
+    fixed = phrase_user_visible_reply(user_text, language, payload)
+    if fixed:
+        payload["speech"] = fixed.strip()
+    return payload
+
+
 def _fallback_router(text: str, language: str) -> QuickModeAgentResult:
-    """Deterministic intent router used when the LLM is unavailable."""
+    """Deterministic intent router used when the LangChain graph is unavailable."""
     lower = text.lower().strip()
 
     if any(w in lower for w in ("balance", "baki", "余额", "余", "saldo")):
-        payload = tool_check_balance()
+        raw = tool_check_balance()
+        payload = _merge_payload_speech(text, language, raw, None)
         return QuickModeAgentResult(
             text=text,
             language=language,
@@ -152,7 +268,8 @@ def _fallback_router(text: str, language: str) -> QuickModeAgentResult:
 
     if any(w in lower for w in ("top up", "topup", "tambah", "充值", "充", "reload")):
         amount = _extract_amount(lower) or 100.0
-        payload = tool_top_up_wallet(amount=amount)
+        raw = tool_top_up_wallet(amount=amount)
+        payload = _merge_payload_speech(text, language, raw, None)
         return QuickModeAgentResult(
             text=text,
             language=language,
@@ -165,21 +282,24 @@ def _fallback_router(text: str, language: str) -> QuickModeAgentResult:
     if any(w in lower for w in ("pay", "bayar", "付", "支付", "transfer")):
         amount = _extract_amount(lower)
         if amount is None:
+            raw: dict[str, Any] = {
+                "tool": "unknown",
+                "ok": False,
+                "reason": "payment_amount_missing",
+                "requires_verification": False,
+            }
+            payload = _merge_payload_speech(text, language, raw, None)
             return QuickModeAgentResult(
                 text=text,
                 language=language,
                 tool="unknown",
                 tool_args={},
-                payload={
-                    "tool": "unknown",
-                    "ok": False,
-                    "speech": "I heard a payment request, but I could not confirm the amount. Please say the amount again, for example: pay RM 3.50.",
-                    "requires_verification": False,
-                },
+                payload=payload,
                 used_llm=False,
             )
         merchant = _extract_merchant(text) or "Merchant"
-        payload = tool_make_payment(amount=amount, merchant=merchant)
+        raw = tool_make_payment(amount=amount, merchant=merchant)
+        payload = _merge_payload_speech(text, language, raw, None)
         return QuickModeAgentResult(
             text=text,
             language=language,
@@ -190,7 +310,8 @@ def _fallback_router(text: str, language: str) -> QuickModeAgentResult:
         )
 
     if any(w in lower for w in ("verify", "thumb", "fingerprint", "sahkan")):
-        payload = tool_verify_identity()
+        raw = tool_verify_identity()
+        payload = _merge_payload_speech(text, language, raw, None)
         return QuickModeAgentResult(
             text=text,
             language=language,
@@ -200,23 +321,32 @@ def _fallback_router(text: str, language: str) -> QuickModeAgentResult:
             used_llm=False,
         )
 
-    fallback_msg = {
-        "en": "I didn't quite catch that. You can ask me to check balance, pay, or top up.",
-        "ms": "Maaf, saya tidak faham. Anda boleh minta saya semak baki, bayar, atau tambah nilai.",
-        "zh": "抱歉，我没听清楚。您可以让我查余额、付款或充值。",
-    }.get(language, "I didn't quite catch that. You can ask me to check balance, pay, or top up.")
+    _deal_en_bm = re.search(
+        r"\b(deals?|promos?|promotions?|discounts?|offers?|vouchers?|cashbacks?|"
+        r"save money|best deal|best offer|cheapest|tawaran|diskaun|murah)\b",
+        lower,
+    )
+    _deal_zh = any(z in text for z in ("优惠", "打折", "促销"))
+    if _deal_en_bm or _deal_zh:
+        raw = tool_best_deal()
+        payload = _merge_payload_speech(text, language, raw, None)
+        return QuickModeAgentResult(
+            text=text,
+            language=language,
+            tool="best_deal",
+            tool_args={},
+            payload=payload,
+            used_llm=False,
+        )
 
+    raw = {"tool": "unknown", "ok": False, "reason": "no_intent_match", "requires_verification": False}
+    payload = _merge_payload_speech(text, language, raw, None)
     return QuickModeAgentResult(
         text=text,
         language=language,
         tool="unknown",
         tool_args={},
-        payload={
-            "tool": "unknown",
-            "ok": False,
-            "speech": fallback_msg,
-            "requires_verification": False,
-        },
+        payload=payload,
         used_llm=False,
     )
 
@@ -242,12 +372,12 @@ def _build_langchain_agent():
 
     @tool
     def check_balance() -> dict:
-        """Return the user's current TnG eWallet balance in Malaysian Ringgit."""
+        """Return JSON facts: wallet balance in MYR (no canned speech). You must explain in your reply."""
         return tool_check_balance()
 
     @tool
     def make_payment(amount: float, merchant: str = "Merchant") -> dict:
-        """Initiate a payment from the wallet to a merchant.
+        """Initiate a payment; returns JSON facts only (no canned speech). You must explain next steps.
 
         Args:
             amount: amount in MYR (Ringgit).
@@ -257,15 +387,25 @@ def _build_langchain_agent():
 
     @tool
     def top_up_wallet(amount: float) -> dict:
-        """Top up the user's wallet by the given amount in MYR (Ringgit)."""
+        """Top up wallet; returns JSON facts only (no canned speech). You must explain in your reply."""
         return tool_top_up_wallet(amount=amount)
 
     @tool
     def verify_identity() -> dict:
-        """Ask the user to verify their identity with their thumbprint."""
+        """Returns JSON to show thumbprint UI (no canned speech). You must ask for verification in words."""
         return tool_verify_identity()
 
-    tools = [check_balance, make_payment, top_up_wallet, verify_identity]
+    @tool
+    def get_best_deal() -> dict:
+        """Return JSON facts for the strongest in-wallet promotion (highest save_amount).
+
+        The return value has no user-facing prose. After calling this tool you MUST reply
+        in your own words using only merchant, title, save_amount, and promotions_count
+        from the JSON. Never invent shops or savings.
+        """
+        return tool_best_deal()
+
+    tools = [check_balance, make_payment, top_up_wallet, verify_identity, get_best_deal]
 
     system_prompt = (
         "You are a warm, patient Touch 'n Go eWallet Quick Mode assistant for "
@@ -300,10 +440,20 @@ def _build_langchain_agent():
         "- For balance intent → call check_balance.\n"
         "- For payment intent → call make_payment(amount, merchant).\n"
         "- For top up intent → call top_up_wallet(amount).\n"
+        "- For promotions, discounts, deals, offers, or \"best deal\" questions → call get_best_deal.\n"
         "- DO NOT call verify_identity yourself; UI handles verification.\n"
         "- Currency is always Malaysian Ringgit (RM).\n"
         "- If merchant is missing, use 'Merchant'.\n"
         "- If top up amount is missing, use 100.\n"
+        "\n"
+        "REPLY AFTER TOOLS — REQUIRED:\n"
+        "- After your tool call is done, you MUST send a normal assistant message in plain "
+        "language for the user (what they would hear from text-to-speech). Never stop with "
+        "only a tool call and no words.\n"
+        "- Tool outputs are facts (numbers, names, flags). You turn them into a short, "
+        "friendly explanation. For get_best_deal, the tool JSON has no canned speech — "
+        "you explain the best offer yourself from the fields in natural, varied wording; "
+        "avoid sounding like a repeated script.\n"
     )
 
     try:
@@ -331,7 +481,7 @@ def _get_agent():
     return _agent_graph
 
 
-_PRIMARY_TOOLS = {"check_balance", "make_payment", "top_up_wallet"}
+_PRIMARY_TOOLS = {"check_balance", "make_payment", "top_up_wallet", "get_best_deal"}
 
 
 def _parse_observation(content) -> dict | None:
@@ -416,12 +566,17 @@ def run_agent(text: str, language: str = "en") -> QuickModeAgentResult:
             log.info("Agent did not call a tool; using fallback router.")
             return _fallback_router(text, language)
 
+        if tool_name == "get_best_deal":
+            tool_name = "best_deal"
+
+        payload = _merge_payload_speech(text, language, observation, messages)
+
         return QuickModeAgentResult(
             text=text,
             language=language,
             tool=tool_name,
             tool_args=tool_args,
-            payload=observation,
+            payload=payload,
             used_llm=True,
         )
 

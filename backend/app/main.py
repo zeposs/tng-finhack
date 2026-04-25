@@ -43,6 +43,7 @@ def create_app() -> Flask:
                     "/api/balance",
                     "/api/promotions",
                     "/api/agent",
+                    "/api/phrase",
                     "/api/voice",
                     "/api/payment",
                     "/api/topup",

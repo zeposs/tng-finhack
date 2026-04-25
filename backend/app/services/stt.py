@@ -211,4 +211,9 @@ def quick_intent_from_text(text: str) -> dict:
         return {"action": "top_up", "amount": amount}
     if any(w in lower for w in ("pay", "bayar", "付", "支付")):
         return {"action": "make_payment", "amount": amount}
+    if re.search(
+        r"\b(deals?|promos?|promotions?|discounts?|offers?|best deal|tawaran|diskaun)\b",
+        lower,
+    ) or any(z in text for z in ("优惠", "促销")):
+        return {"action": "best_deal", "amount": None}
     return {"action": "unknown", "amount": amount}

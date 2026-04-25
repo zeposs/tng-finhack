@@ -1,6 +1,17 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { t } from '../state/strings.js';
 
+const SIMULATED_MERCHANTS = [
+  'Kedai Runcit Maju',
+  'Restoran Selera Kampung',
+  'FamilyMart Bukit Bintang',
+  'Tealive SS15',
+  'Watsons Mid Valley',
+  '99 Speedmart Taman Tun',
+  'Jaya Grocer One Utama',
+  'Guardian KLCC',
+];
+
 function parseMerchantFromRaw(rawValue) {
   if (!rawValue) return 'QR Merchant';
   const text = String(rawValue).trim();
@@ -27,7 +38,6 @@ export default function ScannerScreen({ lang, onBack, onScanned, prefill }) {
   const [detectorReady, setDetectorReady] = useState(false);
   const [detectedLabel, setDetectedLabel] = useState('');
   const [detectedRaw, setDetectedRaw] = useState('');
-  const [manualAmount, setManualAmount] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
 
   const amount = useMemo(() => {
@@ -50,14 +60,12 @@ export default function ScannerScreen({ lang, onBack, onScanned, prefill }) {
   }, []);
 
   const commitScan = useCallback((rawValue, merchant) => {
-    const manual = Number(String(manualAmount).replace(',', '.'));
-    const finalAmount = Number.isFinite(manual) && manual > 0 ? manual : (amount > 0 ? amount : 18.9);
     onScanned({
       raw: String(rawValue || ''),
       merchant: merchant || 'QR Merchant',
-      amount: finalAmount,
+      amount: amount > 0 ? amount : null,
     });
-  }, [amount, manualAmount, onScanned]);
+  }, [amount, onScanned]);
 
   const handleDetectedScan = useCallback((rawValue) => {
     if (isProcessing) return;
@@ -65,12 +73,8 @@ export default function ScannerScreen({ lang, onBack, onScanned, prefill }) {
     const raw = String(rawValue || '');
     setDetectedRaw(raw);
     setDetectedLabel(merchant);
-    setIsProcessing(true);
     stopCamera();
-    autoContinueTimerRef.current = window.setTimeout(() => {
-      commitScan(raw, merchant);
-    }, 700);
-  }, [commitScan, isProcessing, stopCamera]);
+  }, [isProcessing, stopCamera]);
 
   const handleContinue = useCallback(() => {
     if (!detectedLabel) return;
@@ -80,6 +84,17 @@ export default function ScannerScreen({ lang, onBack, onScanned, prefill }) {
     }
     commitScan(detectedRaw, detectedLabel);
   }, [commitScan, detectedLabel, detectedRaw]);
+
+  const handleSimulateSuccess = useCallback(() => {
+    if (isProcessing) return;
+    const merchant = SIMULATED_MERCHANTS[Math.floor(Math.random() * SIMULATED_MERCHANTS.length)];
+    const raw = `merchant=${encodeURIComponent(merchant)}&source=manual-simulated-scan`;
+    setDetectedRaw(raw);
+    setDetectedLabel(merchant);
+    setIsProcessing(true);
+    stopCamera();
+    commitScan(raw, merchant);
+  }, [commitScan, isProcessing, stopCamera]);
 
   useEffect(() => {
     let active = true;
@@ -154,7 +169,7 @@ export default function ScannerScreen({ lang, onBack, onScanned, prefill }) {
   }, [handleDetectedScan, stopCamera]);
 
   return (
-    <div className="phone-frame flex flex-col bg-slate-100 text-slate-900">
+    <div className="phone-frame relative flex flex-col bg-slate-100 text-slate-900">
       <div className="bg-tng-blue px-4 pt-5 pb-3 text-white sm:px-5 sm:pt-6 sm:pb-4">
         <button
           onClick={() => {
@@ -176,9 +191,9 @@ export default function ScannerScreen({ lang, onBack, onScanned, prefill }) {
         </div>
 
         <div className="relative overflow-hidden rounded-3xl border-2 border-slate-200 bg-slate-900">
-          <video ref={videoRef} className="h-[230px] w-full object-cover sm:h-[320px]" muted playsInline />
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-            <div className="h-40 w-40 rounded-3xl border-4 border-emerald-300/90 shadow-[0_0_0_9999px_rgba(0,0,0,0.35)] sm:h-48 sm:w-48" />
+          <video ref={videoRef} className="h-[345px] w-full object-cover sm:h-[480px]" muted playsInline />
+          <div className="pointer-events-none absolute inset-0 flex items-end justify-center pb-8 sm:pb-10">
+            <div className="h-56 w-56 rounded-3xl border-4 border-emerald-300/90 shadow-[0_0_0_9999px_rgba(0,0,0,0.35)] sm:h-64 sm:w-64" />
           </div>
           {!detectorReady && !detectedLabel && (
             <div className="absolute inset-x-0 bottom-0 bg-black/70 px-3 py-2 text-xs font-semibold">
@@ -206,35 +221,34 @@ export default function ScannerScreen({ lang, onBack, onScanned, prefill }) {
             {scanError}
           </div>
         ) : (
-          <div className="text-sm text-slate-600">
-            Point camera to any barcode. Detection auto-continues.
+          <div className="text-center text-2xl font-bold leading-snug text-slate-700 sm:text-3xl">
+            Point camera to paying QRcode.
           </div>
         )}
         <div className="mt-3 rounded-2xl bg-white/95 p-3 text-slate-800 sm:mt-4">
-          <div className="text-xs font-bold uppercase tracking-wider text-slate-500">
-            Amount fallback
+          <div className="text-sm font-semibold text-slate-600">
+            Scan merchant QR to continue payment.
           </div>
-          <div className="mt-1 text-xs text-slate-600">
-            Enter amount only if detected amount is wrong.
-          </div>
-          <input
-            value={manualAmount}
-            onChange={(e) => setManualAmount(e.target.value)}
-            inputMode="decimal"
-            placeholder={amount > 0 ? `Scanned/voice amount: RM ${amount.toFixed(2)}` : 'Optional corrected amount (RM), e.g. 50'}
-            className="mt-2 w-full rounded-xl border-2 border-slate-300 bg-white px-3 py-2.5 text-base text-slate-800 placeholder:text-slate-400 focus:border-tng-blue focus:outline-none"
-          />
-          <div className="mt-3">
-            <button
-              onClick={handleContinue}
-              disabled={!detectedLabel}
-              className={`w-full rounded-xl py-3 text-base font-extrabold text-white transition active:scale-95 ${
-                detectedLabel ? 'bg-emerald-600' : 'cursor-not-allowed bg-slate-300'
-              }`}
-            >
-              Continue
-            </button>
-          </div>
+        </div>
+
+      </div>
+
+      <div className="pointer-events-none absolute bottom-4 right-4 z-20">
+        <div className="rounded-full bg-gradient-to-t from-slate-100/95 via-slate-100/70 to-transparent p-1.5">
+          <button
+            type="button"
+            onClick={handleSimulateSuccess}
+            disabled={isProcessing}
+            aria-label="Simulate successful scan"
+            title="Simulate successful scan"
+            className={`pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full text-2xl text-white shadow-soft transition active:scale-95 ${
+              isProcessing
+                ? 'cursor-not-allowed bg-slate-400'
+                : 'bg-gradient-to-b from-emerald-400 to-emerald-600'
+            } opacity-10`}
+          >
+            {isProcessing ? '…' : '✓'}
+          </button>
         </div>
       </div>
     </div>

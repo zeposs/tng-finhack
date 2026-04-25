@@ -6,6 +6,7 @@ function ToolBadge({ tool }) {
     check_balance: { label: 'Check Balance', color: 'bg-emerald-100 text-emerald-700' },
     make_payment:  { label: 'Make Payment',  color: 'bg-purple-100 text-purple-700' },
     top_up_wallet: { label: 'Top Up',        color: 'bg-amber-100 text-amber-700' },
+    best_deal:     { label: 'Promos',        color: 'bg-orange-100 text-orange-800' },
     verify_identity: { label: 'Verify',      color: 'bg-blue-100 text-blue-700' },
     unknown:       { label: 'Unknown',       color: 'bg-slate-100 text-slate-700' },
   };
@@ -66,6 +67,17 @@ export default function AgentResult({ lang, result, onApprove, onCancel }) {
                 RM {Number(payload.amount).toFixed(2)}
               </div>
               <div className="mt-1 text-base text-slate-600">to {payload.merchant}</div>
+            </div>
+          )}
+
+          {payload.tool === 'make_payment' && payload.ok === false && (
+            <div className="mt-4 rounded-2xl bg-rose-50 p-4 sm:p-5">
+              <div className="text-sm font-semibold text-rose-800">Cannot pay</div>
+              {payload.reason === 'insufficient_balance' && typeof payload.balance === 'number' && (
+                <div className="mt-2 text-sm text-slate-700">
+                  Wallet RM {Number(payload.balance).toFixed(2)} · need RM {Number(payload.amount).toFixed(2)}
+                </div>
+              )}
             </div>
           )}
 

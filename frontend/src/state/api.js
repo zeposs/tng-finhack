@@ -57,13 +57,23 @@ export async function sendText(text, language = 'en') {
   return data;
 }
 
-export async function commitPayment(amount, merchant) {
-  const { data } = await api.post('/payment', { amount, merchant });
+/** Qwen-only phrasing for tool JSON (no hardcoded assistant lines). */
+export async function phraseReply(userText, language, toolResult) {
+  const { data } = await api.post('/phrase', {
+    user_text: userText,
+    language,
+    tool_result: toolResult,
+  });
+  return data?.speech ?? '';
+}
+
+export async function commitPayment(amount, merchant, language = 'en') {
+  const { data } = await api.post('/payment', { amount, merchant, language });
   return data;
 }
 
-export async function commitTopup(amount) {
-  const { data } = await api.post('/topup', { amount });
+export async function commitTopup(amount, language = 'en') {
+  const { data } = await api.post('/topup', { amount, language });
   return data;
 }
 

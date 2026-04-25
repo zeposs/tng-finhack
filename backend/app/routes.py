@@ -5,7 +5,7 @@ import logging
 
 from flask import Blueprint, jsonify, request
 
-from app.agent import run_agent
+from app.agent import phrase_user_visible_reply, run_agent
 from app.agent.tools import commit_payment, commit_topup
 from app.config import settings
 from app.db import (
@@ -64,6 +64,19 @@ def agent():
 
     result = run_agent(text, language=language)
     return jsonify(result.to_dict())
+
+
+@bp.post("/phrase")
+def phrase():
+    """Turn tool JSON into spoken text using Qwen (same helper as agent merge)."""
+    data = request.get_json(silent=True) or {}
+    user_text = (data.get("user_text") or "(app)").strip()
+    language = (data.get("language") or "en").lower()
+    tool_result = data.get("tool_result")
+    if not isinstance(tool_result, dict):
+        return jsonify({"error": "tool_result must be a JSON object"}), 400
+    speech = phrase_user_visible_reply(user_text, language, tool_result)
+    return jsonify({"speech": speech})
 
 
 @bp.post("/voice")
@@ -138,6 +151,14 @@ def payment():
         return jsonify({"error": "Insufficient balance"}), 400
 
     result = commit_payment(amount=amount, merchant=merchant)
+    lang = (data.get("language") or "en").lower()
+    speech = phrase_user_visible_reply(
+        user_text=f"Payment of RM {amount:.2f} to {merchant} completed successfully.",
+        language=lang,
+        payload=dict(result),
+    )
+    if speech:
+        result["speech"] = speech
     return jsonify(result)
 
 
@@ -154,6 +175,14 @@ def topup():
         return jsonify({"error": "Amount must be positive"}), 400
 
     result = commit_topup(amount=amount)
+    lang = (data.get("language") or "en").lower()
+    speech = phrase_user_visible_reply(
+        user_text=f"Top up of RM {amount:.2f} completed successfully.",
+        language=lang,
+        payload=dict(result),
+    )
+    if speech:
+        result["speech"] = speech
     return jsonify(result)
 
 

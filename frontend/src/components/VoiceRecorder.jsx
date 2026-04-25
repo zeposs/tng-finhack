@@ -98,6 +98,7 @@ export default function VoiceRecorder({ lang, onAudioCaptured, onTextSubmit, onC
             <li>• "{t(lang, 'example1')}"</li>
             <li>• "{t(lang, 'example2')}"</li>
             <li>• "{t(lang, 'example3')}"</li>
+            <li>• "{t(lang, 'example4')}"</li>
           </ul>
         </div>
 

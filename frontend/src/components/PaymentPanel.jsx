@@ -29,7 +29,7 @@ export default function PaymentPanel({ lang, onBack, onProceed }) {
           <div className="text-base font-bold text-emerald-800">{t(lang, 'scanPay')}</div>
           <div className="mt-1 text-sm text-emerald-700">{t(lang, 'scanPayHint')}</div>
           <button
-            onClick={() => onProceed({ merchant: 'QR Merchant', amount: 18.9 })}
+            onClick={() => void onProceed({ merchant: 'QR Merchant', amount: 18.9 })}
             className="mt-3 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white active:scale-95"
           >
             {t(lang, 'scanNowDemo')}
@@ -77,7 +77,7 @@ export default function PaymentPanel({ lang, onBack, onProceed }) {
       <div className="px-4 pb-4 sm:px-5 sm:pb-6">
         <button
           disabled={!canProceed}
-          onClick={() => onProceed({ merchant: merchant.trim(), amount })}
+          onClick={() => void onProceed({ merchant: merchant.trim(), amount })}
           className={`w-full rounded-2xl py-3.5 text-base font-extrabold text-white transition sm:py-4 sm:text-lg ${
             canProceed ? 'bg-tng-blue active:scale-95' : 'bg-slate-300 cursor-not-allowed'
           }`}

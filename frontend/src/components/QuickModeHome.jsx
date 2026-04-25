@@ -72,7 +72,7 @@ function PrimaryBottomAction({ onClick, icon, label, hint, bgClass, ringClass })
   return (
     <button
       onClick={onClick}
-      className={`flex min-h-[88px] w-full flex-col items-center justify-center rounded-3xl px-3 py-2 text-center shadow-soft transition active:scale-[0.97] sm:min-h-[120px] sm:px-4 sm:py-4 ${bgClass} ${ringClass}`}
+      className={`flex min-h-[104px] w-full flex-col items-center justify-center rounded-3xl px-3 py-2 text-center shadow-soft transition active:scale-[0.97] sm:min-h-[136px] sm:px-4 sm:py-4 ${bgClass} ${ringClass}`}
     >
       <div className="text-4xl leading-none sm:text-6xl">{icon}</div>
       <div className="mt-1 text-base font-extrabold tracking-tight text-white sm:mt-1.5 sm:text-2xl">{label}</div>
@@ -108,7 +108,7 @@ function WeChatHoldVoiceButton({ lang, onCaptured, disabled }) {
         onPointerCancel={endHold}
         onPointerLeave={endHold}
         disabled={disabled || blocked}
-        className={`flex min-h-[88px] w-full select-none flex-col items-center justify-center rounded-3xl px-3 py-2 text-center shadow-soft transition sm:min-h-[120px] sm:px-4 sm:py-4 ${
+        className={`flex min-h-[104px] w-full select-none flex-col items-center justify-center rounded-3xl px-3 py-2 text-center shadow-soft transition sm:min-h-[136px] sm:px-4 sm:py-4 ${
           recording
             ? 'scale-[0.98] bg-gradient-to-b from-red-500 to-red-600 ring-2 ring-red-200'
             : 'active:scale-[0.97] bg-gradient-to-b from-violet-500 to-violet-600 ring-2 ring-violet-200'

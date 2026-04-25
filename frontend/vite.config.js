@@ -6,7 +6,9 @@ export default defineConfig({
   server: {
     host: true,
     port: 5173,
-    allowedHosts: ['syok.ai'],
+    // LAN testing: allow access via local IP (e.g. 192.168.x.x).
+    allowedHosts: true,
+    strictPort: true,
     proxy: {
       '/api': {
         target: 'http://localhost:5000',
