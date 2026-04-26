@@ -50,7 +50,7 @@ Replace multi-step navigation with a **single spoken command**:
 ## Features
 
 | Feature | Description |
-|---|---|
+| --- | --- |
 | 🎙️ **Voice Commands** | Speak to check balance, pay, or top up |
 | 🧠 **LangChain Agent** | Real agentic AI with tool routing (not just keyword matching) |
 | 📊 **Pipeline Visualization** | Animated 4-node LangGraph-style diagram during AI processing |
@@ -63,7 +63,7 @@ Replace multi-step navigation with a **single spoken command**:
 ### Supported Voice Commands
 
 | Intent | English | Bahasa Malaysia | Mandarin |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Check Balance | "What is my balance?" | "Berapa baki saya?" | "余额多少" |
 | Make Payment | "Pay RM50 to merchant" | "Bayar RM50" | "付50块" |
 | Top Up | "Top up RM100" | "Tambah RM100" | "充值100" |
@@ -75,7 +75,7 @@ Replace multi-step navigation with a **single spoken command**:
 
 ### System Diagram
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │                  FRONTEND (React + Vite)                    │
 │                                                             │
@@ -107,7 +107,7 @@ Replace multi-step navigation with a **single spoken command**:
 
 The UI is a single-page React app with **no client-side router**. Navigation is driven by a state machine:
 
-```
+```text
 HOME
  ├── PAY → SCANNER → AMOUNT_VOICE → LISTENING → THINKING → RESULT → VERIFYING → SUCCESS → HOME
  ├── VOICE → LISTENING → THINKING → RESULT → VERIFYING → SUCCESS → HOME
@@ -122,7 +122,7 @@ HOME
 
 Every voice command flows through a 4-stage pipeline (visualised live in the UI):
 
-```
+```text
 [ 🎙️ Voice Input ]
        ↓
   DashScope Paraformer STT
@@ -148,13 +148,14 @@ Every voice command flows through a 4-stage pipeline (visualised live in the UI)
 ### Fallback Strategy
 
 When DashScope is unavailable or `MOCK_MODE=1`:
+
 - A deterministic **regex router** handles the 4 core intents
 - Canned responses play automatically — the demo **never crashes**
 
 ### LangChain Tools
 
 | Tool | Description |
-|---|---|
+| --- | --- |
 | `check_balance` | Returns current wallet balance from SQLite |
 | `make_payment` | Initiates payment with amount & merchant |
 | `top_up_wallet` | Initiates wallet top-up |
@@ -166,7 +167,7 @@ When DashScope is unavailable or `MOCK_MODE=1`:
 ## Tech Stack
 
 | Layer | Technology |
-|---|---|
+| --- | --- |
 | Frontend | React 18 + Vite + Tailwind CSS |
 | Backend | Python 3.11 + Flask + Gunicorn |
 | Agent Framework | LangChain (AgentExecutor) |
@@ -180,7 +181,7 @@ When DashScope is unavailable or `MOCK_MODE=1`:
 
 ## Project Structure
 
-```
+```text
 tng-finhack/
 ├── backend/
 │   ├── app/
@@ -266,7 +267,7 @@ npm install
 All backend configuration lives in `backend/.env`. Key variables:
 
 | Variable | Default | Description |
-|---|---|---|
+| --- | --- | --- |
 | `DASHSCOPE_API_KEY` | *(empty)* | DashScope API key. Empty = mock mode |
 | `MOCK_MODE` | `0` | Set to `1` to force mock mode regardless of key |
 | `DASHSCOPE_REGION` | `intl` | `intl` (Singapore) or `china` (Beijing) |
@@ -275,7 +276,7 @@ All backend configuration lives in `backend/.env`. Key variables:
 
 If the backend runs somewhere other than `http://localhost:5000`, create `frontend/.env.local`:
 
-```
+```text
 VITE_API_BASE=http://your-host:5000
 ```
 
@@ -286,6 +287,7 @@ VITE_API_BASE=http://your-host:5000
 ### Development
 
 **Terminal 1 — Backend:**
+
 ```bash
 cd backend
 source .venv/bin/activate   # or .venv\Scripts\Activate.ps1 on Windows
@@ -294,6 +296,7 @@ python -m app.main
 ```
 
 **Terminal 2 — Frontend:**
+
 ```bash
 cd frontend
 npm run dev
@@ -325,7 +328,7 @@ If `DASHSCOPE_API_KEY` is empty or `MOCK_MODE=1`, the backend uses canned respon
 ## API Reference
 
 | Method | Endpoint | Description |
-|---|---|---|
+| --- | --- | --- |
 | GET | `/api/health` | Liveness check + config info |
 | GET | `/api/balance` | Current wallet balance (MYR) |
 | GET | `/api/history` | Transaction history (last 20) |
@@ -336,16 +339,16 @@ If `DASHSCOPE_API_KEY` is empty or `MOCK_MODE=1`, the backend uses canned respon
 | POST | `/api/payment` | Commit payment after thumbprint |
 | POST | `/api/topup` | Commit top-up after thumbprint |
 
-#### `POST /api/voice`
+### `POST /api/voice`
 
-```
+```text
 Content-Type: multipart/form-data
 Fields:
   audio    — audio blob (webm / wav / mp3)
   language — "en" | "bm" | "zh" (default: "en")
 ```
 
-#### `POST /api/agent`
+### `POST /api/agent`
 
 ```json
 { "text": "Pay RM50 to KFC", "language": "en" }
@@ -373,7 +376,7 @@ Fields:
 TalknGo is built entirely on the Alibaba Cloud ecosystem. Below is a full list of services in use:
 
 | Service | Product | Purpose |
-|---|---|---|
+| --- | --- | --- |
 | **Alibaba Cloud ECS** | Elastic Compute Service | Hosts both the Flask backend (Gunicorn) and Nginx web server |
 | **DashScope — STT** | Paraformer / `fun-asr-realtime` | Converts user voice (audio blob) to text transcript |
 | **DashScope — LLM** | Qwen-Turbo (`qwen-turbo`) | Intent extraction, tool selection, and natural language response generation |
@@ -431,6 +434,7 @@ server {
 ```
 
 Reload after config changes:
+
 ```bash
 sudo nginx -t && sudo nginx -s reload
 ```
