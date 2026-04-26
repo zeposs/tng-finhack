@@ -67,6 +67,12 @@ export default function SuccessScreen({ lang, kind, amount, merchant, balance, o
                 <MockQR payload={payload} size={190} />
               </div>
               <div className="mt-3 text-xs text-slate-400">{ts}</div>
+              <button
+                onClick={onDone}
+                className="mt-3 flex items-center gap-1.5 rounded-full bg-slate-100 px-4 py-1.5 text-xs font-bold text-slate-600 active:scale-95"
+              >
+                🏠 {t(lang, 'home')}
+              </button>
             </div>
           </div>
         ) : (
@@ -87,7 +93,7 @@ export default function SuccessScreen({ lang, kind, amount, merchant, balance, o
           onClick={onDone}
           className="w-full rounded-2xl bg-tng-blue py-3.5 text-lg font-extrabold text-white active:scale-95 sm:py-4 sm:text-xl"
         >
-          {t(lang, 'done')}
+          🏠 {t(lang, 'home')}
         </button>
       </div>
     </div>

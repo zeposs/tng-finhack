@@ -172,13 +172,27 @@ export default function App() {
     const userText = result?.text?.trim();
     const speech = result?.payload?.speech?.trim();
     if (userText) appendHomeChat('user', userText);
+
+    // Tools that need thumbprint verification → hand off to the full agent flow.
+    // This covers top_up_wallet and any other tool with requires_verification: true.
+    if (result?.payload?.requires_verification) {
+      if (speech) {
+        appendHomeChat('assistant', speech);
+        speakResponse(speech);
+      }
+      processAgentResult(result);
+      return;
+    }
+
     if (speech) {
       appendHomeChat('assistant', speech);
       speakResponse(speech);
     }
 
-    if (result?.tool === 'check_balance' && typeof result?.payload?.balance === 'number') {
-      setBalance(result.payload.balance);
+    // Update balance from any tool that returns a current or post-transaction balance.
+    const newBal = result?.payload?.balance_after ?? result?.payload?.balance;
+    if (typeof newBal === 'number' && newBal >= 0) {
+      setBalance(newBal);
     }
 
     if (result?.tool === 'make_payment' && result?.payload?.next_screen === 'scanner') {
@@ -191,7 +205,7 @@ export default function App() {
       setScannerSource('agent');
       setAppState(STATE.SCANNER);
     }
-  }, [appendHomeChat, speakResponse]);
+  }, [appendHomeChat, processAgentResult, speakResponse]);
 
   const proceedManualPayment = useCallback(
     async ({ amount, merchant }) => {

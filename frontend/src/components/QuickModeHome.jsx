@@ -4,12 +4,42 @@ import { t } from '../state/strings.js';
 import { useVoiceRecorder } from '../hooks/useVoiceRecorder.js';
 
 function HeaderBar({ lang }) {
+  const [isFullscreen, setIsFullscreen] = React.useState(!!document.fullscreenElement);
+
+  React.useEffect(() => {
+    const onChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', onChange);
+    return () => document.removeEventListener('fullscreenchange', onChange);
+  }, []);
+
+  const toggleFullscreen = async () => {
+    try {
+      if (!document.fullscreenElement) {
+        await document.documentElement.requestFullscreen();
+      } else {
+        await document.exitFullscreen();
+      }
+    } catch {
+      /* fullscreen not supported — silently ignore */
+    }
+  };
+
   return (
     <div className="flex items-center justify-between px-4 pt-2 pb-0.5 sm:px-5 sm:pt-2.5">
       <span className="text-xs font-bold uppercase tracking-widest text-white/80 sm:text-sm">
         {t(lang, 'myBalance')}
       </span>
-      <Logo size={44} />
+      <button
+        onClick={toggleFullscreen}
+        className="rounded-xl active:scale-90 transition-transform"
+        aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+        title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+      >
+        <Logo size={44} />
+        <div className="mt-0.5 text-center text-[9px] font-bold text-white/60 leading-none">
+          {isFullscreen ? '⊠ EXIT' : '⛶ FULL'}
+        </div>
+      </button>
     </div>
   );
 }

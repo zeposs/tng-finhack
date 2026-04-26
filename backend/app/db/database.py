@@ -18,7 +18,7 @@ from app.config import settings
 
 DEFAULT_USER_ID = "demo-user"
 DEFAULT_USER_NAME = "Auntie Lim"
-DEFAULT_BALANCE = 250.00
+DEFAULT_BALANCE = 10000.00
 
 
 @contextmanager

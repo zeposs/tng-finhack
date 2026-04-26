@@ -33,9 +33,6 @@ export default function AgentResult({ lang, result, onApprove, onCancel }) {
         </button>
         <div className="mt-2 flex items-center gap-2">
           <ToolBadge tool={result.tool} />
-          {result.used_llm && (
-            <span className="qm-pill bg-white/15 text-white">via LangChain</span>
-          )}
         </div>
         {result.text && (
           <div className="mt-3 rounded-2xl bg-white/10 px-3.5 py-2.5 text-sm sm:px-4 sm:py-3 sm:text-base">
